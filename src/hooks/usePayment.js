@@ -16,7 +16,7 @@ const TRIAL_LIMIT = 3
 const UNLOCK_KEY = 'math_kids_unlocked'
 
 // Worker API 地址（部署后替换）
-const API_BASE = 'https://math-kids-pay.xxx.workers.dev'
+const API_BASE = 'https://math-kids-pay.yasen-chen.workers.dev'
 
 function generateId() {
   return 'mn_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10)
