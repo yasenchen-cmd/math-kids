@@ -2,12 +2,10 @@
  * 付费墙组件
  *
  * 家长加微信付款后，卖家生成解锁码，家长输入后解锁。
- * 解锁码由 device_id + 密钥 计算得出，防止随意解锁。
  */
 
 import { useState } from 'react'
 
-// 解锁码验证密钥（与生成工具一致）
 const UNLOCK_SECRET = 'mn-unlock-v1'
 
 function isValidUnlockCode(deviceId, code) {
@@ -20,6 +18,24 @@ export default function PayWall({ deviceId, onUnlock }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [unlocked, setUnlocked] = useState(false)
+  const [copiedWechat, setCopiedWechat] = useState(false)
+  const [copiedDevice, setCopiedDevice] = useState(false)
+
+  const copyWechat = async () => {
+    try {
+      await navigator.clipboard.writeText('arthurchan1977')
+      setCopiedWechat(true)
+      setTimeout(() => setCopiedWechat(false), 2000)
+    } catch {}
+  }
+
+  const copyDeviceId = async () => {
+    try {
+      await navigator.clipboard.writeText(deviceId)
+      setCopiedDevice(true)
+      setTimeout(() => setCopiedDevice(false), 2000)
+    } catch {}
+  }
 
   const handleSubmit = () => {
     if (isValidUnlockCode(deviceId, code.trim())) {
@@ -57,26 +73,33 @@ export default function PayWall({ deviceId, onUnlock }) {
           </div>
         </div>
 
-        {/* 微信联系 */}
-        <div style={{ marginTop: '16px', padding: '14px', background: '#F5F5F5', borderRadius: '12px', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '8px' }}>
+        {/* 步骤一：微信联系 */}
+        <div style={{ marginTop: '16px', padding: '14px', background: '#F5F5F5', borderRadius: '12px' }}>
+          <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '8px', textAlign: 'center' }}>
             步骤一：添加微信购买
           </div>
-          <div style={wechatBox}>
-            arthurchan1977
+          <button onClick={copyWechat} style={copyBtn}>
+            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#07C160', flex: 1, textAlign: 'center' }}>
+              arthurchan1977
+            </span>
+            <span style={copyLabel}>
+              {copiedWechat ? '已复制 ✓' : '复制'}
+            </span>
+          </button>
+
+          <div style={{ marginTop: '10px', fontSize: '0.75rem', color: '#999', lineHeight: 1.5, textAlign: 'center' }}>
+            加好友后发送下方的设备 ID 给卖家
           </div>
-          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#999', lineHeight: 1.5 }}>
-            加好友时发送下方的设备 ID
-          </div>
-          <div style={deviceIdBox}>
-            {deviceId}
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '4px' }}>
-            点按即可复制
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+            <div style={deviceIdBox}>{deviceId}</div>
+            <button onClick={copyDeviceId} style={smallCopyBtn}>
+              {copiedDevice ? '✓' : '复制'}
+            </button>
           </div>
         </div>
 
-        {/* 解锁码输入 */}
+        {/* 步骤二：解锁码输入 */}
         {!unlocked && (
           <div style={{ marginTop: '16px', padding: '14px', background: '#F0FFF4', borderRadius: '12px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '10px' }}>
@@ -140,16 +163,26 @@ const priceCard = {
   background: '#FFF8F0', border: '2px solid #FFE0B2',
   borderRadius: '16px', padding: '16px',
 }
-const wechatBox = {
-  display: 'inline-block', background: '#fff', border: '2px solid #07C160',
-  borderRadius: '10px', padding: '8px 20px', fontSize: '1.1rem',
-  fontWeight: 700, color: '#07C160', userSelect: 'all',
+const copyBtn = {
+  display: 'flex', alignItems: 'center', gap: '8px',
+  width: '100%', background: '#fff', border: '2px solid #07C160',
+  borderRadius: '10px', padding: '8px 12px', cursor: 'pointer',
+  fontSize: 'inherit',
+}
+const copyLabel = {
+  fontSize: '0.7rem', color: '#07C160', fontWeight: 600,
+  whiteSpace: 'nowrap', flexShrink: 0,
 }
 const deviceIdBox = {
-  marginTop: '6px', padding: '8px 12px', fontSize: '0.75rem',
+  flex: 1, padding: '8px 10px', fontSize: '0.75rem',
   color: '#333', background: '#fff', borderRadius: '8px',
   border: '1px dashed #ccc', wordBreak: 'break-all',
-  userSelect: 'all', cursor: 'text',
+  overflow: 'hidden',
+}
+const smallCopyBtn = {
+  background: '#D4380D', color: 'white', border: 'none',
+  borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem',
+  fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
 }
 const inputStyle = {
   width: '100%', padding: '10px 14px', fontSize: '0.9rem',
