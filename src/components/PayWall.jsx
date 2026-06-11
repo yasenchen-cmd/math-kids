@@ -57,10 +57,16 @@ export default function PayWall({ deviceId, onUnlock }) {
             付款后点击「已付款」即可解锁
           </div>
           <div style={{
-            marginTop: '6px', padding: '6px 10px', fontSize: '0.7rem',
-            color: '#666', wordBreak: 'break-all',
+            marginTop: '6px', padding: '8px 12px', fontSize: '0.75rem',
+            color: '#333', background: '#fff', borderRadius: '8px',
+            border: '1px dashed #ccc', wordBreak: 'break-all',
+            userSelect: 'all', WebkitUserSelect: 'all',
+            cursor: 'text',
           }}>
-            设备 ID：{deviceId}
+            {deviceId}
+          </div>
+          <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '4px' }}>
+            点按即可复制
           </div>
         </div>
 
