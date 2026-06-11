@@ -7,7 +7,7 @@
  * - 模拟模式：显示模拟支付链接（测试用）
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export default function PayWall({ onCreateOrder, onStartPolling }) {
   const [order, setOrder] = useState(null)
@@ -25,9 +25,7 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
       }
       setOrder(data)
       if (data.order_id) {
-        onStartPolling(data.order_id, () => {
-          // 支付成功后的处理由 hook 执行
-        })
+        onStartPolling(data.order_id, () => {})
       }
     } catch (e) {
       setError('创建订单失败，请稍后重试')
@@ -39,7 +37,6 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
   return (
     <div style={overlay}>
       <div style={card}>
-        {/* 标题 */}
         <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🔓</div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2D3436', marginBottom: '4px' }}>
           继续学习
@@ -51,7 +48,6 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
 
         {!order ? (
           <>
-            {/* 价格卡片 */}
             <div style={priceCard}>
               <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '4px' }}>
                 限时优惠 · 年卡
@@ -90,7 +86,6 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
             </div>
           </>
         ) : order.unlocked ? (
-          // 已解锁
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🎉</div>
             <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2E7D32', marginBottom: '8px' }}>
@@ -98,23 +93,23 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
             </p>
           </div>
         ) : (
-          // 显示二维码
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#2D3436', marginBottom: '12px' }}>
               扫码支付 ¥29.9
             </div>
 
             {order.qr_url ? (
-              // 真实二维码
               <img src={order.qr_url} alt="支付二维码"
                 style={{ width: '200px', height: '200px', borderRadius: '12px', marginBottom: '12px' }}
               />
             ) : (
-              // 模拟模式
               <div style={demoQr}>
                 <div style={{ fontSize: '3rem', marginBottom: '8px' }}>📱</div>
                 <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '4px' }}>
                   模拟支付模式
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '8px' }}>
+                  （演示用，不扣费）
                 </div>
                 <a href={order.order_url || '#'} target="_blank" rel="noopener noreferrer"
                   style={{ color: '#4F8CF6', fontSize: '0.8rem', wordBreak: 'break-all' }}>
@@ -129,8 +124,18 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
           </div>
         )}
 
-        {/* 页脚 */}
-        <div style={{ marginTop: '16px', fontSize: '0.75rem', color: '#B2BEC3' }}>
+        {/* 联系作者 */}
+        {!order?.qr_url && !order?.unlocked && (
+          <div style={{ marginTop: '14px', padding: '10px', background: '#F5F5F5', borderRadius: '12px', fontSize: '0.85rem' }}>
+            当前为演示模式，如需购买请
+            <a href="https://github.com/yasenchen-cmd" target="_blank" rel="noopener noreferrer"
+              style={{ color: '#D4380D', fontWeight: 700, textDecoration: 'underline' }}>
+              联系作者
+            </a>
+          </div>
+        )}
+
+        <div style={{ marginTop: '12px', fontSize: '0.75rem', color: '#B2BEC3' }}>
           数学闯关 · 适合 3–8 岁儿童
         </div>
       </div>
