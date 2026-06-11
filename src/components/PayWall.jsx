@@ -1,17 +1,34 @@
 /**
- * 付费墙组件（纯本地版）
+ * 付费墙组件
  *
- * 试用耗尽后显示微信号，家长付款后点击「已付款」解锁。
- * 不需要任何后端。
+ * 家长加微信付款后，卖家生成解锁码，家长输入后解锁。
+ * 解锁码由 device_id + 密钥 计算得出，防止随意解锁。
  */
 
 import { useState } from 'react'
 
-export default function PayWall({ deviceId, onUnlock }) {
-  const [showConfirm, setShowConfirm] = useState(false)
+// 解锁码验证密钥（与生成工具一致）
+const UNLOCK_SECRET = 'mn-unlock-v1'
 
-  const handleConfirmPaid = () => {
-    onUnlock()
+function isValidUnlockCode(deviceId, code) {
+  if (!code || code.length < 10) return false
+  const expected = btoa(UNLOCK_SECRET + ':' + deviceId).replace(/=/g, '')
+  return code === expected
+}
+
+export default function PayWall({ deviceId, onUnlock }) {
+  const [code, setCode] = useState('')
+  const [error, setError] = useState('')
+  const [unlocked, setUnlocked] = useState(false)
+
+  const handleSubmit = () => {
+    if (isValidUnlockCode(deviceId, code.trim())) {
+      setUnlocked(true)
+      setError('')
+      setTimeout(() => onUnlock(), 800)
+    } else {
+      setError('解锁码错误，请联系卖家')
+    }
   }
 
   return (
@@ -43,26 +60,15 @@ export default function PayWall({ deviceId, onUnlock }) {
         {/* 微信联系 */}
         <div style={{ marginTop: '16px', padding: '14px', background: '#F5F5F5', borderRadius: '12px', textAlign: 'center' }}>
           <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '8px' }}>
-            添加微信购买
+            步骤一：添加微信购买
           </div>
-          <div style={{
-            display: 'inline-block', background: '#fff', border: '2px solid #07C160',
-            borderRadius: '10px', padding: '8px 20px', fontSize: '1.1rem',
-            fontWeight: 700, color: '#07C160', userSelect: 'all',
-          }}>
+          <div style={wechatBox}>
             arthurchan1977
           </div>
           <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#999', lineHeight: 1.5 }}>
-            加好友时发送下方的设备 ID<br/>
-            付款后点击「已付款」即可解锁
+            加好友时发送下方的设备 ID
           </div>
-          <div style={{
-            marginTop: '6px', padding: '8px 12px', fontSize: '0.75rem',
-            color: '#333', background: '#fff', borderRadius: '8px',
-            border: '1px dashed #ccc', wordBreak: 'break-all',
-            userSelect: 'all', WebkitUserSelect: 'all',
-            cursor: 'text',
-          }}>
+          <div style={deviceIdBox}>
             {deviceId}
           </div>
           <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '4px' }}>
@@ -70,25 +76,44 @@ export default function PayWall({ deviceId, onUnlock }) {
           </div>
         </div>
 
-        {/* 已付款按钮 */}
-        {!showConfirm ? (
-          <button
-            style={confirmBtn}
-            onClick={() => setShowConfirm(true)}
-          >
-            我已付款
-          </button>
-        ) : (
-          <div style={{ marginTop: '16px', textAlign: 'center' }}>
-            <p style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '12px' }}>
-              确认卖家已收款后点击下方按钮
-            </p>
+        {/* 解锁码输入 */}
+        {!unlocked && (
+          <div style={{ marginTop: '16px', padding: '14px', background: '#F0FFF4', borderRadius: '12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '10px' }}>
+              步骤二：付款后输入解锁码
+            </div>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="输入卖家给你的解锁码"
+              style={inputStyle}
+            />
+            {error && (
+              <div style={{ color: '#FF6B6B', fontSize: '0.8rem', marginTop: '6px' }}>
+                {error}
+              </div>
+            )}
             <button
-              style={unlockBtn}
-              onClick={handleConfirmPaid}
+              style={{
+                ...unlockBtn,
+                opacity: code.length < 5 ? 0.5 : 1,
+              }}
+              disabled={code.length < 5}
+              onClick={handleSubmit}
             >
-              ✅ 已付款，解锁
+              解锁
             </button>
+          </div>
+        )}
+
+        {/* 解锁成功 */}
+        {unlocked && (
+          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🎉</div>
+            <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2E7D32' }}>
+              解锁成功，开始学习吧！
+            </p>
           </div>
         )}
 
@@ -115,14 +140,24 @@ const priceCard = {
   background: '#FFF8F0', border: '2px solid #FFE0B2',
   borderRadius: '16px', padding: '16px',
 }
-const confirmBtn = {
-  display: 'block', width: '100%', marginTop: '16px',
-  background: 'linear-gradient(135deg, #07C160, #06AD56)',
-  color: 'white', border: 'none', padding: '14px 0',
-  borderRadius: '14px', fontSize: '1.1rem', fontWeight: 700,
-  boxShadow: '0 4px 12px rgba(7,193,96,0.3)',
+const wechatBox = {
+  display: 'inline-block', background: '#fff', border: '2px solid #07C160',
+  borderRadius: '10px', padding: '8px 20px', fontSize: '1.1rem',
+  fontWeight: 700, color: '#07C160', userSelect: 'all',
+}
+const deviceIdBox = {
+  marginTop: '6px', padding: '8px 12px', fontSize: '0.75rem',
+  color: '#333', background: '#fff', borderRadius: '8px',
+  border: '1px dashed #ccc', wordBreak: 'break-all',
+  userSelect: 'all', cursor: 'text',
+}
+const inputStyle = {
+  width: '100%', padding: '10px 14px', fontSize: '0.9rem',
+  border: '2px solid #E8ECF0', borderRadius: '10px',
+  textAlign: 'center', outline: 'none', boxSizing: 'border-box',
 }
 const unlockBtn = {
+  display: 'block', width: '100%', marginTop: '10px',
   background: '#D4380D', color: 'white', border: 'none',
-  padding: '12px 32px', borderRadius: '14px', fontSize: '1rem', fontWeight: 700,
+  padding: '12px 0', borderRadius: '12px', fontSize: '1rem', fontWeight: 700,
 }
