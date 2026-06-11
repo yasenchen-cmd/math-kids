@@ -128,7 +128,7 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
         {!order?.qr_url && !order?.unlocked && (
           <div style={{ marginTop: '14px', padding: '10px', background: '#F5F5F5', borderRadius: '12px', fontSize: '0.85rem' }}>
             当前为演示模式，如需购买请
-            <a href="https://github.com/yasenchen-cmd" target="_blank" rel="noopener noreferrer"
+            <a href="https://github.com/yasenchen-cmd/math-kids/issues/new?template=buy.md" target="_blank" rel="noopener noreferrer"
               style={{ color: '#D4380D', fontWeight: 700, textDecoration: 'underline' }}>
               联系作者
             </a>
