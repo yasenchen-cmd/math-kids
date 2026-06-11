@@ -21,19 +21,22 @@ export default function PayWall({ deviceId, onUnlock }) {
   const [copiedWechat, setCopiedWechat] = useState(false)
   const [copiedDevice, setCopiedDevice] = useState(false)
 
-  const copyWechat = async () => {
+  function copyText(text, setter) {
     try {
-      await navigator.clipboard.writeText('arthurchan1977')
-      setCopiedWechat(true)
-      setTimeout(() => setCopiedWechat(false), 2000)
-    } catch {}
-  }
-
-  const copyDeviceId = async () => {
-    try {
-      await navigator.clipboard.writeText(deviceId)
-      setCopiedDevice(true)
-      setTimeout(() => setCopiedDevice(false), 2000)
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setter(true)
+      setTimeout(() => setter(false), 2000)
     } catch {}
   }
 
@@ -78,7 +81,7 @@ export default function PayWall({ deviceId, onUnlock }) {
           <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '8px', textAlign: 'center' }}>
             步骤一：添加微信购买
           </div>
-          <button onClick={copyWechat} style={copyBtn}>
+          <button onClick={() => copyText('arthurchan1977', setCopiedWechat)} style={copyBtn}>
             <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#07C160', flex: 1, textAlign: 'center' }}>
               arthurchan1977
             </span>
@@ -93,7 +96,7 @@ export default function PayWall({ deviceId, onUnlock }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
             <div style={deviceIdBox}>{deviceId}</div>
-            <button onClick={copyDeviceId} style={smallCopyBtn}>
+            <button onClick={() => copyText(deviceId, setCopiedDevice)} style={smallCopyBtn}>
               {copiedDevice ? '✓' : '复制'}
             </button>
           </div>
