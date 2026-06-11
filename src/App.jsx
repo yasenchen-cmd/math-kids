@@ -17,6 +17,13 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(() => getSoundEnabled())
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showPayWall, setShowPayWall] = useState(false)
+  const {
+    deviceId,
+    unlocked,
+    trialRemaining,
+    consumeTrial,
+    doUnlock,
+  } = usePayment()
   const { progress } = useProgress()
   const [minnanToast, setMinnanToast] = useState(false)
 
