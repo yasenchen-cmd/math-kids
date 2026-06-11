@@ -1,0 +1,18 @@
+name = "math-kids-pay"
+main = "workers/pay-worker.js"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "UNLOCK_KV"
+id = ""
+preview_id = ""
+
+[vars]
+# 虎皮椒配置（注册后填 https://www.xorpay.com）
+HUOPIJAO_APP_ID = ""
+HUOPIJAO_APP_SECRET = ""
+# 支付回调地址：部署后替换成实际 Worker 域名
+CALLBACK_URL = "https://math-kids-pay.xxx.workers.dev/api/hupijiao-callback"
+# 付费金额（分）
+PRICE = "2990"
+

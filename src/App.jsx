@@ -1,39 +1,64 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import SkillTreeView from './components/SkillTreeView'
 import GameScreen from './components/GameScreen'
+import PayWall from './components/PayWall'
 import { loadProfile, saveProfile } from './engine/errorProfile'
 import { useProgress } from './hooks/useProgress'
 import { setSoundEnabled, getSoundEnabled, playSafe, playClick } from './utils/sound'
 import { checkFirstMastery } from './hooks/useSecretCharacter'
+import usePayment from './hooks/usePayment'
 
 export default function App() {
   const [showSkillTree, setShowSkillTree] = useState(true)
   const [currentSkill, setCurrentSkill] = useState(null)
+  const [pendingSkill, setPendingSkill] = useState(null)
 
-  // 错误画像 — 唯一的 state 来源，GameScreen 和 SkillTreeView 共享
   const [errorProfile, setErrorProfile] = useState(() => loadProfile())
-
   const [soundOn, setSoundOn] = useState(() => getSoundEnabled())
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showPayWall, setShowPayWall] = useState(false)
   const { progress } = useProgress()
-
-  // 风狮爷解锁通知
   const [minnanToast, setMinnanToast] = useState(false)
+
+  const {
+    unlocked,
+    trialRemaining,
+    consumeTrial,
+    createOrder,
+    startPolling,
+  } = usePayment()
 
   useEffect(() => { setSoundEnabled(soundOn) }, [soundOn])
 
-  // 定期保存错误画像
   useEffect(() => {
     const interval = setInterval(() => { saveProfile(errorProfile) }, 5000)
     return () => clearInterval(interval)
   }, [errorProfile])
 
   function handleSelectSkill(skillId) {
+    // 免费试用逻辑
+    if (!unlocked) {
+      if (trialRemaining > 0) {
+        consumeTrial()
+      } else {
+        setPendingSkill(skillId)
+        setShowPayWall(true)
+        return
+      }
+    }
     setCurrentSkill(skillId)
     setShowSkillTree(false)
   }
 
-  // 从关卡返回，接收 GameScreen 传回的 errorProfile
+  function handlePaySuccess() {
+    setShowPayWall(false)
+    if (pendingSkill) {
+      setCurrentSkill(pendingSkill)
+      setShowSkillTree(false)
+      setPendingSkill(null)
+    }
+  }
+
   function handleBack(updatedProfile) {
     if (updatedProfile) {
       setErrorProfile(updatedProfile)
@@ -41,11 +66,10 @@ export default function App() {
     }
     setShowSkillTree(true)
     setCurrentSkill(null)
+    setPendingSkill(null)
   }
 
-  // 技能完成，接收 GameScreen 传回的 errorProfile
   function handleMastered(skillId, stars, updatedProfile) {
-    // 检测是否第一次拿 3 星 ➜ 解锁风狮爷
     if (checkFirstMastery(stars)) {
       setMinnanToast(true)
       setTimeout(() => setMinnanToast(false), 4000)
@@ -67,6 +91,7 @@ export default function App() {
       localStorage.removeItem('math_kids_error_profile')
       localStorage.removeItem('math_kids_progress')
       localStorage.removeItem('math_kids_minnan_unlocked')
+      localStorage.removeItem('math_kids_trial_count')
     } catch {}
     setShowResetConfirm(false)
   }
@@ -75,6 +100,9 @@ export default function App() {
     <div style={{ position:'relative', minHeight:'100dvh' }}>
       {/* 工具栏 */}
       <div style={toolbar}>
+        {unlocked && (
+          <span style={proBadge}>PRO</span>
+        )}
         <button style={toolBtn} onClick={() => { playSafe(playClick); setSoundOn(v => !v) }} title={soundOn ? '关闭音效' : '开启音效'}>
           {soundOn ? '🔊' : '🔇'}
         </button>
@@ -89,12 +117,27 @@ export default function App() {
           progress={progress}
           errorProfile={errorProfile}
           onSelectSkill={handleSelectSkill}
+          trialRemaining={unlocked ? -1 : trialRemaining}
+          unlocked={unlocked}
         />
       ) : (
         <GameScreen
           skillId={currentSkill}
           onBack={handleBack}
           onMastered={handleMastered}
+        />
+      )}
+
+      {/* 付费墙 */}
+      {showPayWall && (
+        <PayWall
+          onCreateOrder={createOrder}
+          onStartPolling={(orderId, cb) => {
+            startPolling(orderId, () => {
+              handlePaySuccess()
+              cb?.()
+            })
+          }}
         />
       )}
 
@@ -140,11 +183,17 @@ export default function App() {
 
 const toolbar = {
   position:'fixed', top:'12px', right:'12px', display:'flex', gap:'8px', zIndex:100,
+  alignItems:'center',
 }
 const toolBtn = {
   background:'white', border:'2px solid #E8ECF0', borderRadius:'50%', width:'40px', height:'40px',
   display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem',
   cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
+}
+const proBadge = {
+  background:'linear-gradient(135deg,#D4380D,#FF6B6B)', color:'white',
+  padding:'3px 10px', borderRadius:'10px', fontSize:'0.7rem', fontWeight:700,
+  letterSpacing:'0.5px',
 }
 const toastOverlay = {
   position:'fixed', inset:0, background:'rgba(0,0,0,0.25)', display:'flex',

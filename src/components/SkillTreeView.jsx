@@ -11,7 +11,7 @@ import CharacterMascot from './CharacterMascot'
 import { playSafe, playClick } from '../utils/sound'
 import { isMinnanUnlocked } from '../hooks/useSecretCharacter'
 
-export default function SkillTreeView({ progress, errorProfile, onSelectSkill }) {
+export default function SkillTreeView({ progress, errorProfile, onSelectSkill, trialRemaining = -1, unlocked = false }) {
   const [expandedAreas, setExpandedAreas] = useState({})
   const skillScores = errorProfile?.skillScores || {}
   const allSkills = getAllSkills()
@@ -40,6 +40,19 @@ export default function SkillTreeView({ progress, errorProfile, onSelectSkill })
         <div style={masteryBanner}>
           <span>🏆</span>
           <span>{masteredCount}/{totalSkills} 技能已掌握</span>
+
+        {!unlocked && trialRemaining > 0 && (
+          <div style={trialBanner}>
+            <span>🔍</span>
+            <span>免费试用：还可体验 <strong>{trialRemaining}</strong> 个技能</span>
+          </div>
+        )}
+        {!unlocked && trialRemaining === 0 && (
+          <div style={trialBannerExpired}>
+            <span>🔒</span>
+            <span>免费试用已结束，点击任意技能解锁全部内容</span>
+          </div>
+        )}
         </div>
       </div>
 
@@ -162,4 +175,17 @@ const minnanBadge = {
   background:'#FFF1E6', color:'#D4380D', border:'1.5px solid #D4380D',
   padding:'2px 8px', borderRadius:'10px', fontSize:'0.7rem', fontWeight:700,
   animation:'popIn 0.4s ease-out',
+}
+
+const trialBanner = {
+  display:'inline-flex', alignItems:'center', gap:'6px',
+  background:'#E3F2FD', color:'#1565C0', border:'1.5px solid #90CAF9',
+  padding:'6px 14px', borderRadius:'12px', fontSize:'0.8rem', fontWeight:500,
+  marginTop:'8px',
+}
+const trialBannerExpired = {
+  display:'inline-flex', alignItems:'center', gap:'6px',
+  background:'#FFF3E0', color:'#E65100', border:'1.5px solid #FFCC80',
+  padding:'6px 14px', borderRadius:'12px', fontSize:'0.8rem', fontWeight:500,
+  marginTop:'8px', animation:'pulse 2s ease-in-out infinite',
 }
