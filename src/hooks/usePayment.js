@@ -1,22 +1,20 @@
 /**
- * 支付 Hook
+ * 支付 Hook（纯本地版，不需要后端）
  *
- * 管理：
- * - 设备 ID（localStorage 持久化）
- * - 试用剩余次数
- * - 付费状态检查
- * - 订单创建与轮询
+ * 流程：
+ * 1. 免费试用 3 个技能
+ * 2. 试用耗尽，显示付费墙 + 微信号
+ * 3. 家长加微信付款，发送设备 ID
+ * 4. 卖家确认后，告诉家长点击「已付款」按钮
+ * 5. 本地存储解锁标记，永久可用
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 
 const DEVICE_KEY = 'math_kids_device_id'
 const TRIAL_KEY = 'math_kids_trial_count'
-const TRIAL_LIMIT = 3
 const UNLOCK_KEY = 'math_kids_unlocked'
-
-// Worker API 地址（部署后替换）
-const API_BASE = 'https://math-kids-pay.yasen-chen.workers.dev'
+const TRIAL_LIMIT = 3
 
 function generateId() {
   return 'mn_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10)
@@ -43,99 +41,37 @@ function getTrialCount() {
   }
 }
 
-function setTrialCount(n) {
-  try { localStorage.setItem(TRIAL_KEY, String(n)) } catch {}
-}
-
-function isLocallyUnlocked() {
-  try { return localStorage.getItem(UNLOCK_KEY) === 'true' } catch { return false }
-}
-
-function setLocalUnlock() {
-  try { localStorage.setItem(UNLOCK_KEY, 'true') } catch {}
-}
-
 export default function usePayment() {
   const [deviceId] = useState(() => getDeviceId())
   const [trialUsed, setTrialUsed] = useState(() => getTrialCount())
-  const [unlocked, setUnlocked] = useState(() => isLocallyUnlocked())
-  const [checking, setChecking] = useState(false)
-  const pollingRef = useRef(null)
+  const [unlocked, setUnlocked] = useState(() => {
+    try { return localStorage.getItem(UNLOCK_KEY) === 'true' } catch { return false }
+  })
 
   const trialRemaining = Math.max(0, TRIAL_LIMIT - trialUsed)
   const showPayWall = !unlocked && trialRemaining <= 0
-
-  // 启动时检查服务端解锁状态
-  useEffect(() => {
-    if (unlocked) return
-    setChecking(true)
-    fetch(`${API_BASE}/api/check-unlock?device_id=${deviceId}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.unlocked) {
-          setUnlocked(true)
-          setLocalUnlock()
-        }
-      })
-      .catch(() => {}) // 网络错误不影响体验
-      .finally(() => setChecking(false))
-  }, [deviceId])
 
   // 消耗一次试用
   const consumeTrial = useCallback(() => {
     const next = trialUsed + 1
     setTrialUsed(next)
-    setTrialCount(next)
+    try { localStorage.setItem(TRIAL_KEY, String(next)) } catch {}
   }, [trialUsed])
 
-  // 创建支付订单
-  const createOrder = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/create-order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ device_id: deviceId }),
-    })
-    return await res.json()
-  }, [deviceId])
-
-  // 轮询订单状态
-  const startPolling = useCallback((orderId, onPaid) => {
-    if (pollingRef.current) clearInterval(pollingRef.current)
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/check-order?order_id=${orderId}`)
-        const data = await res.json()
-        if (data.status === 'paid') {
-          clearInterval(pollingRef.current)
-          pollingRef.current = null
-          setUnlocked(true)
-          setLocalUnlock()
-          onPaid?.()
-        }
-      } catch {}
-    }, 2000)
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
-    }
-  }, [])
-
-  // 清理轮询
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
-    }
+  // 手动解锁（卖家确认付款后调用）
+  const doUnlock = useCallback(() => {
+    setUnlocked(true)
+    try { localStorage.setItem(UNLOCK_KEY, 'true') } catch {}
   }, [])
 
   return {
     deviceId,
     unlocked,
-    checking,
     trialRemaining,
     trialUsed,
     TRIAL_LIMIT,
     showPayWall,
     consumeTrial,
-    createOrder,
-    startPolling,
+    doUnlock,
   }
 }

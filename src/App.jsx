@@ -20,13 +20,6 @@ export default function App() {
   const { progress } = useProgress()
   const [minnanToast, setMinnanToast] = useState(false)
 
-  const {
-    unlocked,
-    trialRemaining,
-    consumeTrial,
-    createOrder,
-    startPolling,
-  } = usePayment()
 
   useEffect(() => { setSoundEnabled(soundOn) }, [soundOn])
 
@@ -131,13 +124,7 @@ export default function App() {
       {/* 付费墙 */}
       {showPayWall && (
         <PayWall deviceId={deviceId}
-          onCreateOrder={createOrder}
-          onStartPolling={(orderId, cb) => {
-            startPolling(orderId, () => {
-              handlePaySuccess()
-              cb?.()
-            })
-          }}
+          onUnlock={() => { doUnlock(); handlePaySuccess() }}
         />
       )}
 
