@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 
-export default function PayWall({ onCreateOrder, onStartPolling }) {
+export default function PayWall({ onCreateOrder, onStartPolling, deviceId }) {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -106,7 +106,12 @@ export default function PayWall({ onCreateOrder, onStartPolling }) {
           <div style={{ marginTop: '14px', padding: '12px', background: '#F5F5F5', borderRadius: '12px', fontSize: '0.85rem', textAlign: 'center' }}>
             当前为演示模式，如需购买请加微信
             <div style={wechatBox}>arthurchan1977</div>
-          </div>
+            <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#888', lineHeight: 1.5 }}>
+              加好友时发送下方的<br/>设备 ID 给卖家即可解锁
+            </div>
+            <div style={{ marginTop: '6px', padding: '6px 10px', background: '#fff', border: '1px dashed #ccc', borderRadius: '8px', fontSize: '0.75rem', color: '#666', userSelect: 'all', wordBreak: 'break-all' }}>
+              {deviceId}
+            </div>
         )}
 
         <div style={{ marginTop: '12px', fontSize: '0.75rem', color: '#B2BEC3' }}>

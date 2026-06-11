@@ -130,7 +130,7 @@ export default function App() {
 
       {/* 付费墙 */}
       {showPayWall && (
-        <PayWall
+        <PayWall deviceId={deviceId}
           onCreateOrder={createOrder}
           onStartPolling={(orderId, cb) => {
             startPolling(orderId, () => {
