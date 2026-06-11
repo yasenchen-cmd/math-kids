@@ -6,7 +6,7 @@
  * - HUOPIJAO_APP_ID: 虎皮椒 AppID
  * - HUOPIJAO_APP_SECRET: 虎皮椒密钥
  * - CALLBACK_URL: 本 Worker 的回调地址
- * - PRICE: 金额（分），默认 2990 = ¥29.9
+ * - PRICE: 金额（分），默认 990 = ¥9.9
  * - ADMIN_KEY: 管理员密钥，用于人工解锁
  */
 
@@ -77,7 +77,7 @@ async function handleCreateOrder(request, env, corsHeaders) {
   }
 
   const order_id = `MN${Date.now()}${Math.random().toString(36).slice(2, 8).toUpperCase()}`
-  const price = env.PRICE || '2990'
+  const price = env.PRICE || '990'
 
   await env.UNLOCK_KV.put(
     `order:${order_id}`,

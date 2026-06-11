@@ -69,7 +69,7 @@ export default function PayWall({ deviceId, onUnlock }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
             <span style={{ fontSize: '1rem', color: '#B2BEC3', textDecoration: 'line-through' }}>¥199</span>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#D4380D' }}>¥29.9</span>
+            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#D4380D' }}>¥9.9</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#B2BEC3', marginTop: '4px' }}>
             一天不到一毛钱
