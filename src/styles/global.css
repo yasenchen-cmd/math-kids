@@ -174,10 +174,11 @@ button:active {
   75% { transform: translateX(5px); }
 }
 
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0); }
-  50% { opacity: 1; transform: scale(1); }
+@keyframes pulseHint {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.35); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 179, 71, 0.65); }
 }
+
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }

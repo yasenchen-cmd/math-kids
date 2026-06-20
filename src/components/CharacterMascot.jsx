@@ -11,6 +11,10 @@ import { useState, useEffect } from 'react'
 import { getCharacter, pickLine } from '../data/characters'
 
 const MOOD_ANIMS = {
+  encourage: {
+    animation: 'bounce 0.6s ease-in-out 2',
+    scale: 1.05,
+  },
   happy: {
     animation: 'bounce 0.5s ease-in-out',
     scale: 1.1,
@@ -89,7 +93,9 @@ export default function CharacterMascot({
           transition: 'transform 0.2s ease',
           boxShadow: mood === 'happy' || mood === 'celebrate'
             ? `0 0 20px ${chara.color}66`
-            : '0 2px 8px rgba(0,0,0,0.08)',
+            : mood === 'encourage'
+              ? `0 0 14px ${chara.color}44`
+              : '0 2px 8px rgba(0,0,0,0.08)',
           border: `2px solid ${chara.color}`,
           position: 'relative',
         }}
@@ -98,6 +104,7 @@ export default function CharacterMascot({
 
         {/* 情绪小标记 */}
         {mood === 'happy' && <span style={badgeTopRight}>⭐</span>}
+        {mood === 'encourage' && <span style={badgeTopRight}>💪</span>}
         {mood === 'celebrate' && <span style={badgeTopRight}>🎉</span>}
         {mood === 'thinking' && <span style={badgeTopRight}>💭</span>}
       </div>

@@ -3,27 +3,34 @@
  * 完全基于 skillGraph，不依赖旧题库
  * 闽南彩蛋：风狮爷解锁后在标题旁显示小标记
  */
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { getAllSkills, areas } from '../engine/skillGraph'
 import { calcMastery, isSkillMastered, areDepsMet } from '../engine/adaptive'
+import { isSkillImplemented } from '../engine/questionGenerator'
 import { getCharacter } from '../data/characters'
 import CharacterMascot from './CharacterMascot'
 import { playSafe, playClick } from '../utils/sound'
 import { isMinnanUnlocked } from '../hooks/useSecretCharacter'
 
-export default function SkillTreeView({ progress, errorProfile, onSelectSkill, trialRemaining = -1, unlocked = false }) {
+export default function SkillTreeView({ errorProfile, onSelectSkill, trialRemaining = -1, unlocked = false }) {
   const [expandedAreas, setExpandedAreas] = useState({})
   const skillScores = errorProfile?.skillScores || {}
-  const allSkills = getAllSkills()
+  const allSkills = useMemo(() => getAllSkills(), [])
   const totalSkills = allSkills.length
-  const masteredCount = allSkills.filter(s => isSkillMastered(s.id, skillScores, errorProfile)).length
+  const masteredCount = useMemo(
+    () => allSkills.filter(s => isSkillMastered(s.id, skillScores, errorProfile)).length,
+    [allSkills, skillScores, errorProfile]
+  )
   const minnanUnlocked = isMinnanUnlocked()
 
-  const skillsByArea = {}
-  allSkills.forEach(s => {
-    if (!skillsByArea[s.area]) skillsByArea[s.area] = []
-    skillsByArea[s.area].push(s)
-  })
+  const skillsByArea = useMemo(() => {
+    const grouped = {}
+    allSkills.forEach(s => {
+      if (!grouped[s.area]) grouped[s.area] = []
+      grouped[s.area].push(s)
+    })
+    return grouped
+  }, [allSkills])
 
   return (
     <div style={container}>
@@ -84,17 +91,19 @@ export default function SkillTreeView({ progress, errorProfile, onSelectSkill, t
                     const mastery = calcMastery(s.id, skillScores, errorProfile)
                     const mastered = mastery >= 80
                     const depMet = areDepsMet(s.dependencies, skillScores, errorProfile)
+                    const implemented = isSkillImplemented(s.id)
+                    const playable = depMet && implemented
 
                     return (
                       <button key={s.id} style={{
                         ...skillCard,
-                        opacity: depMet ? 1 : 0.4,
-                        cursor: depMet ? 'pointer' : 'not-allowed',
-                        borderColor: mastered ? '#4CAF50' : depMet ? area.color : '#E8ECF0',
-                        background: mastered ? '#F1F8E9' : 'white',
+                        opacity: playable ? 1 : depMet ? 0.55 : 0.4,
+                        cursor: playable ? 'pointer' : 'not-allowed',
+                        borderColor: mastered ? '#4CAF50' : playable ? area.color : '#E8ECF0',
+                        background: mastered ? '#F1F8E9' : !implemented && depMet ? '#FAFAFA' : 'white',
                       }}
-                        disabled={!depMet}
-                        onClick={() => { if (depMet) { playSafe(playClick); onSelectSkill(s.id) } }}>
+                        disabled={!playable}
+                        onClick={() => { if (playable) { playSafe(playClick); onSelectSkill(s.id) } }}>
                         <div style={masteryRing}>
                           <svg width="36" height="36" viewBox="0 0 36 36">
                             <circle cx="18" cy="18" r="15" fill="none" stroke="#E8ECF0" strokeWidth="3"/>
@@ -105,8 +114,8 @@ export default function SkillTreeView({ progress, errorProfile, onSelectSkill, t
                         </div>
                         <div style={{flex:1}}>
                           <div style={{fontWeight:600,fontSize:'0.85rem',color:'#2D3436',marginBottom:'2px'}}>{s.name}</div>
-                          <div style={{fontSize:'0.7rem',color: mastered ? '#4CAF50' : '#B2BEC3'}}>
-                            {mastered ? '✓ 已掌握' : `${Math.round(mastery)}%`}
+                          <div style={{fontSize:'0.7rem',color: mastered ? '#4CAF50' : !implemented && depMet ? '#FF9800' : '#B2BEC3'}}>
+                            {mastered ? '✓ 已掌握' : !implemented && depMet ? '🚧 开发中' : `${Math.round(mastery)}%`}
                           </div>
                         </div>
                       </button>

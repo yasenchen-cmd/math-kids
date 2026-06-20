@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import SkillTreeView from './components/SkillTreeView'
 import GameScreen from './components/GameScreen'
 import PayWall from './components/PayWall'
 import { loadProfile, saveProfile } from './engine/errorProfile'
-import { useProgress } from './hooks/useProgress'
 import { setSoundEnabled, getSoundEnabled, playSafe, playClick } from './utils/sound'
 import { checkFirstMastery } from './hooks/useSecretCharacter'
 import usePayment from './hooks/usePayment'
@@ -24,7 +23,6 @@ export default function App() {
     consumeTrial,
     doUnlock,
   } = usePayment()
-  const { progress } = useProgress()
   const [minnanToast, setMinnanToast] = useState(false)
 
 
@@ -103,10 +101,10 @@ export default function App() {
         {unlocked && (
           <span style={proBadge}>PRO</span>
         )}
-        <button style={toolBtn} onClick={() => { playSafe(playClick); setSoundOn(v => !v) }} title={soundOn ? '关闭音效' : '开启音效'}>
+        <button style={toolBtn} aria-label={soundOn ? '关闭音效' : '开启音效'} onClick={() => { playSafe(playClick); setSoundOn(v => !v) }} title={soundOn ? '关闭音效' : '开启音效'}>
           {soundOn ? '🔊' : '🔇'}
         </button>
-        <button style={toolBtn} onClick={() => { playSafe(playClick); setShowResetConfirm(true) }} title="重置所有进度">
+        <button style={toolBtn} aria-label="重置所有进度" onClick={() => { playSafe(playClick); setShowResetConfirm(true) }} title="重置所有进度">
           🔄
         </button>
       </div>
@@ -114,7 +112,6 @@ export default function App() {
       {/* 主内容 */}
       {showSkillTree ? (
         <SkillTreeView
-          progress={progress}
           errorProfile={errorProfile}
           onSelectSkill={handleSelectSkill}
           trialRemaining={unlocked ? -1 : trialRemaining}
@@ -123,6 +120,8 @@ export default function App() {
       ) : (
         <GameScreen
           skillId={currentSkill}
+          errorProfile={errorProfile}
+          setErrorProfile={setErrorProfile}
           onBack={handleBack}
           onMastered={handleMastered}
         />

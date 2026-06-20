@@ -1,6 +1,6 @@
-/**
- * 加法生成器 — 支持干预矩阵参数
- */
+import {
+  buildQuestion, emojiGridVisual, makeChoices, numericDistractors, randInt,
+} from './_utils.js'
 
 const THEMES = {
   fruits:  ['🍎','🍊','🍋','🍇','🍓','🍑','🍒','🍌'],
@@ -44,7 +44,12 @@ export function generateQuestion(skillId, options = {}) {
     showNumberLine,
     forceVisual,
     recountHint,
+    forceInteractive = false,
   } = options
+
+  if (skillId === 'make_ten') {
+    return genMakeTen(options)
+  }
 
   const ranges = {
     addition_meaning:     { min: 1, max: 3 },
@@ -72,39 +77,47 @@ export function generateQuestion(skillId, options = {}) {
 
   const answer = a + b
   const theme = visualTheme || randomTheme()
-
-  // 构建操作型交互参数
+  const useManipulative = (difficulty <= 2 && DRAG_ADDITION_SKILLS.has(skillId)) || forceInteractive
   let manipMode = 'drag_combine'
   let manipConfig = {}
+  let visual = null
 
-  if (stepByStep || forceVisual) {
-    // 分步引导版本：一次只拖一个
-    const items = []
-    const singleEmoji = pickSingle(theme)
-    for (let i = 0; i < a + b; i++) {
-      items.push(singleEmoji)
-    }
-    manipConfig = {
-      items,
-      stepByStep: true,
-      recountHint: !!recountHint,
-      showNumberLine: !!showNumberLine,
+  if (useManipulative) {
+    if (stepByStep || forceVisual) {
+      const items = []
+      const singleEmoji = pickSingle(theme)
+      for (let i = 0; i < a + b; i++) items.push(singleEmoji)
+      manipConfig = {
+        items,
+        stepByStep: true,
+        recountHint: !!recountHint,
+        showNumberLine: !!showNumberLine,
+      }
+    } else {
+      manipConfig = {
+        groups: [
+          { count: a, emoji: pickEmoji(theme, 1).trim(), label: `${a}` },
+          { count: b, emoji: pickEmoji(theme, 1).trim(), label: `${b}` },
+        ],
+        targetLabel: '一共',
+        answer,
+      }
     }
   } else {
-    manipConfig = {
-      groups: [
-        { count: a, emoji: pickEmoji(theme, 1).trim(), label: `${a}` },
-        { count: b, emoji: pickEmoji(theme, 1).trim(), label: `${b}` },
-      ],
-      targetLabel: '一共',
-      answer,
-    }
+    const singleEmoji = pickSingle(theme)
+    visual = { type: 'emoji_grid', items: Array.from({ length: a + b }, () => singleEmoji) }
+    manipMode = null
   }
 
-  // 选择题型
   const distractors = generateDistractors(answer, a, b, difficulty, avoidDigits)
-  const choice = {
-    options: shuffle([answer, ...distractors]),
+  const choice = makeChoices(answer, distractors)
+  const dragFallback = {
+    mode: 'drag_combine',
+    groups: [
+      { count: a, emoji: pickEmoji(theme, 1).trim(), label: `${a}` },
+      { count: b, emoji: pickEmoji(theme, 1).trim(), label: `${b}` },
+    ],
+    targetLabel: '一共',
     answer,
   }
 
@@ -115,10 +128,9 @@ export function generateQuestion(skillId, options = {}) {
       ? `${a}个${THEME_NAMES[theme]||''}加${b}个，我们一个一个数`
       : `${a}个${THEME_NAMES[theme]||''}加${b}个，一共多少个？`,
     answer,
-    manipulative: {
-      mode: manipMode,
-      ...manipConfig,
-    },
+    visual,
+    manipulative: useManipulative ? { mode: manipMode, ...manipConfig } : null,
+    interactiveFallback: useManipulative ? null : dragFallback,
     choice,
     difficulty,
     interventions: {
@@ -155,6 +167,46 @@ function generateDistractors(answer, a, b, difficulty, avoidDigits) {
   }
   return Array.from(distractors).slice(0, count)
 }
+
+function genMakeTen(options) {
+  const { difficulty = 1, forceInteractive = false } = options
+  const a = randInt(1, 9)
+  const b = 10 - a
+  const answer = 10
+  const itemsA = Array(a).fill('🔵')
+  const itemsB = Array(b).fill('🟠')
+  const useManipulative = difficulty <= 2 || forceInteractive
+
+  return buildQuestion({
+    skillId: 'make_ten',
+    prompt: `${a} + ${b} = ?（凑成 10）`,
+    promptNarrative: `${a} 再加 ${b} 就凑成 10 啦`,
+    answer,
+    visual: useManipulative ? null : { type: 'emoji_grid', items: [...itemsA, ...itemsB] },
+    manipulative: useManipulative ? {
+      mode: 'drag_combine',
+      groups: [
+        { count: a, emoji: '🔵', label: `${a}` },
+        { count: b, emoji: '🟠', label: `${b}` },
+      ],
+      targetLabel: '凑成 10',
+      answer,
+    } : null,
+    interactiveFallback: useManipulative ? null : {
+      mode: 'drag_combine',
+      groups: [
+        { count: a, emoji: '🔵', label: `${a}` },
+        { count: b, emoji: '🟠', label: `${b}` },
+      ],
+      targetLabel: '凑成 10',
+      answer,
+    },
+    choice: makeChoices(answer, [9, 11, a + b - 1].filter(n => n !== answer)),
+    difficulty,
+  })
+}
+
+const DRAG_ADDITION_SKILLS = new Set(['addition_meaning', 'addition_within_5'])
 
 function randomTheme() {
   const themes = Object.keys(THEMES)

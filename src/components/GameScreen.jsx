@@ -1,11 +1,12 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { getSkill } from '../engine/skillGraph'
-import { generateQuestion } from '../engine/questionGenerator'
+import { generateQuestion, generateUniqueQuestion } from '../engine/questionGenerator'
+import { questionFingerprint } from '../engine/generators/_utils'
 import { getAdaptiveConfig } from '../engine/adaptive'
-import { applyInterventions } from '../engine/interventionMatrix'
-import { recordAttempt, loadProfile } from '../engine/errorProfile'
-import { playSafe, playCorrect, playWrong, playLevelComplete, playClick } from '../utils/sound'
+import { applyInterventions, resetActiveInterventions } from '../engine/interventionMatrix'
+import { recordAttempt } from '../engine/errorProfile'
+import { playSafe, playCorrect, playRetryCorrect, playWrong, playLevelComplete, playClick } from '../utils/sound'
 import { getCharacter, pickLine } from '../data/characters'
 import SpeakButton from './SpeakButton'
 import CharacterMascot from './CharacterMascot'
@@ -14,11 +15,20 @@ import useSpeech from '../hooks/useSpeech'
 import useDirector from '../hooks/useDirector'
 import { shouldShowSecretMascot } from '../hooks/useSecretCharacter'
 import DragCombine from './manipulative/DragCombine'
+import DragSplit from './manipulative/DragSplit'
+import DragShare from './manipulative/DragShare'
+import FillArray from './manipulative/FillArray'
 import CountAndTap from './manipulative/CountAndTap'
+import CompareCount from './manipulative/CompareCount'
+import PickOne from './manipulative/PickOne'
+import QuestionVisual from './QuestionVisual'
+import ChoiceGrid from './ChoiceGrid'
+import RetryHintBanner from './RetryHintBanner'
+import { getRetryHint, upgradeQuestionToInteractive, getVisualFocus } from '../engine/retrySupport'
 
 const THEME_CYCLE = ['fruits', 'animals', 'candies', 'blocks', 'toys']
 
-export default function GameScreen({ skillId, onBack, onMastered }) {
+export default function GameScreen({ skillId, errorProfile, setErrorProfile, onBack, onMastered }) {
   const skill = getSkill(skillId)
 
   // 风狮爷彩蛋：解锁后 25% 概率随机客串
@@ -39,15 +49,29 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
   const [score, setScore] = useState(0)
   const totalQ = 5
   const [feedback, setFeedback] = useState(null)
-  const [errorProfile, setErrorProfile] = useState(() => loadProfile())
   const [visualTheme, setVisualTheme] = useState(0)
   const [mascotMood, setMascotMood] = useState('idle')
   const [mascotSpeech, setMascotSpeech] = useState('')
   const [celebrate, setCelebrate] = useState(null)
   const [easyWinMode, setEasyWinMode] = useState(false)
+  const [questionAttempt, setQuestionAttempt] = useState(0)
+  const [retryHint, setRetryHint] = useState(null)
+  const [retryUpgraded, setRetryUpgraded] = useState(false)
 
-  const skillScores = errorProfile.skillScores || {}
+  const skillScores = errorProfile?.skillScores || {}
   const idleTimerRef = useRef(null)
+  const sessionSeenRef = useRef(new Set())
+  const recoveryBoostRef = useRef({ difficultyDrop: 0, roundsLeft: 0 })
+  const retriedRef = useRef(false)
+
+  const manipMode = question?.manipulative?.mode
+  const hideVisual = manipMode && ['drag_combine', 'drag_split', 'drag_share', 'fill_array', 'count', 'compare_count', 'pick_one'].includes(manipMode)
+  const visualFocus = useMemo(() => getVisualFocus(retryHint), [retryHint])
+  const attemptKey = `${qIndex}-${questionAttempt}`
+
+  useEffect(() => {
+    resetActiveInterventions()
+  }, [skillId])
 
   // ===== 导演层指令处理 =====
   useEffect(() => {
@@ -90,7 +114,12 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
         break
 
       case 'switch_interaction':
-        // 后续扩展：切换交互模式
+        recoveryBoostRef.current = {
+          difficultyDrop: Math.min(3, recoveryBoostRef.current.difficultyDrop + 1),
+          roundsLeft: Math.max(2, recoveryBoostRef.current.roundsLeft || 0),
+        }
+        setMascotSpeech('换一种方法试试～')
+        setMascotMood('thinking')
         break
 
       case 'intervention_force':
@@ -128,19 +157,33 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
     const theme = THEME_CYCLE[visualTheme % THEME_CYCLE.length]
     setVisualTheme(v => v + 1)
 
+    const recovery = recoveryBoostRef.current
+    let effectiveDifficulty = interventionOpts.difficultyBoost
+      ? Math.max(1, config.difficulty + interventionOpts.difficultyBoost)
+      : config.difficulty
+
+    if (recovery.roundsLeft > 0) {
+      effectiveDifficulty = Math.max(1, effectiveDifficulty - recovery.difficultyDrop)
+      interventionOpts.forceInteractive = true
+      interventionOpts.stepByStep = true
+    }
+
     const genOptions = {
-      difficulty: interventionOpts.difficultyBoost
-        ? Math.max(1, config.difficulty + interventionOpts.difficultyBoost)
-        : config.difficulty,
+      difficulty: effectiveDifficulty,
       visualTheme: theme,
       previousErrors: errorProfile,
+      forceInteractive: interventionOpts.forceInteractive || recovery.roundsLeft > 0 || config.preferInteractive,
       ...interventionOpts,
     }
 
-    const q = generateQuestion(skillId, genOptions)
+    const q = generateUniqueQuestion(skillId, genOptions, sessionSeenRef.current)
+    sessionSeenRef.current.add(questionFingerprint(q))
     setQuestion(q)
     setFeedback(null)
     setEasyWinMode(false)
+    retriedRef.current = false
+    setRetryHint(null)
+    setRetryUpgraded(false)
 
     if (interventionFeedback) {
       setMascotSpeech(interventionFeedback)
@@ -150,9 +193,12 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
 
   // ===== 开始游戏 =====
   const startGame = useCallback(() => {
+    sessionSeenRef.current = new Set()
+    recoveryBoostRef.current = { difficultyDrop: 0, roundsLeft: 0 }
     setPhase('play')
     setQIndex(0)
     setScore(0)
+    setQuestionAttempt(0)
     setMascotMood('idle')
     director.onInput()
     nextQuestion()
@@ -189,6 +235,32 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
   }, [phase, qIndex])
 
   // ===== 处理答案 =====
+  const handleRetry = useCallback(() => {
+    if (!question) return
+    retriedRef.current = true
+    setFeedback(null)
+
+    const lastWrong = feedback?.userAnswer
+    const hint = getRetryHint(question, lastWrong)
+    setRetryHint(hint)
+
+    const upgraded = upgradeQuestionToInteractive(question)
+    const didUpgrade = !!upgraded.manipulative && !question.manipulative
+    if (didUpgrade) {
+      setQuestion(upgraded)
+      setRetryUpgraded(true)
+      setMascotSpeech('用手试一试，更容易哦～')
+      speak('用手试一试，更容易哦', { rate: 0.85 })
+    } else {
+      setMascotSpeech(hint.text)
+      speak(hint.text, { rate: 0.85 })
+    }
+
+    setQuestionAttempt(a => a + 1)
+    setMascotMood('encourage')
+    resetIdleTimer()
+  }, [question, feedback, speak, resetIdleTimer])
+
   const handleAnswer = useCallback((userAnswer) => {
     if (feedback || !question) return
     resetIdleTimer()
@@ -198,17 +270,55 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
     setErrorProfile(updatedProfile)
 
     if (isCorrect) {
+      const wasRetry = retriedRef.current
       setScore(s => s + 1)
-      setFeedback({ type: 'correct' })
-      playSafe(playCorrect)
-      // 导演层接管节奏
-      director.onCorrect({ streak: (director.context?.streak || 0) + 1 })
+      setFeedback({ type: 'correct', retrySuccess: wasRetry })
+      playSafe(wasRetry ? playRetryCorrect : playCorrect)
+
+      director.onCorrect({
+        streak: (director.context?.streak || 0) + 1,
+        retried: wasRetry,
+      })
+
+      const line = pickLine(effectiveArea, wasRetry ? 'retry_correct' : 'correct')
+      setMascotMood(wasRetry ? 'encourage' : 'happy')
+      setMascotSpeech(line)
+      speak(line, { rate: wasRetry ? 0.88 : 0.85 })
+
+      if (wasRetry) {
+        setCelebrate('retry_correct')
+        setTimeout(() => setCelebrate(null), 900)
+      }
+
+      const r = recoveryBoostRef.current
+      if (r.roundsLeft > 0) {
+        recoveryBoostRef.current = {
+          difficultyDrop: Math.max(0, r.difficultyDrop - 1),
+          roundsLeft: r.roundsLeft - 1,
+        }
+      }
+    } else if (!retriedRef.current) {
+      setFeedback({
+        type: 'wrong',
+        correctAnswer: question.answer,
+        userAnswer,
+        canRetry: true,
+      })
+      playSafe(playWrong)
+      setMascotSpeech('不对哦，再想一想～')
+      setMascotMood('thinking')
     } else {
-      setFeedback({ type: 'wrong', correctAnswer: question.answer })
+      setFeedback({ type: 'wrong', correctAnswer: question.answer, userAnswer, canRetry: false })
       playSafe(playWrong)
       director.onWrong({ errors: (director.context?.errors || 0) + 1 })
+      recoveryBoostRef.current = {
+        difficultyDrop: Math.min(3, recoveryBoostRef.current.difficultyDrop + 1),
+        roundsLeft: 2,
+      }
+      setMascotSpeech('没关系，下一题我们用手来试一试～')
+      setMascotMood('thinking')
     }
-  }, [question, feedback, skillId, errorProfile, speak, resetIdleTimer])
+  }, [question, feedback, skillId, errorProfile, resetIdleTimer, speak, director, effectiveArea])
 
   const handleNext = useCallback(() => {
     stop()
@@ -240,7 +350,6 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
           <div style={{marginBottom:'16px'}}>
             <CharacterMascot areaId={effectiveArea} mood="happy" size="large" customText={mascotSpeech} showSpeech />
           </div>
-          <div style={{fontSize:'0.8rem',color:'#B2BEC3',marginBottom:'12px'}}>状态：{director.stateLabel}</div>
           <h2 style={{fontSize:'1.5rem',fontWeight:700,color:'#2D3436',marginBottom:'8px'}}>{skill.name}</h2>
           <p style={{fontSize:'0.9rem',color:'#636E72',marginBottom:'16px'}}>{chara.name}带你学：{skill.description || skill.name}</p>
           <div style={{background:'white',borderRadius:'20px',padding:'20px',marginBottom:'20px',boxShadow:'0 4px 20px rgba(0,0,0,0.08)'}}>
@@ -267,7 +376,6 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
               <div style={{height:'100%',borderRadius:'4px',transition:'width 0.3s ease',width:`${((qIndex+1)/totalQ)*100}%`,background:'#4F8CF6'}} />
             </div>
           </div>
-          <span style={{fontSize:'0.75rem',fontWeight:600,color:'#B2BEC3',minWidth:'56px'}}>{director.stateLabel}</span>
           <span style={{fontSize:'0.9rem',fontWeight:600,color:'#636E72',minWidth:'40px'}}>{qIndex+1}/{totalQ}</span>
           <button style={{background:'none',border:'none',fontSize:'1.2rem',color:'#B2BEC3',padding:'4px 8px',cursor:'pointer'}}
             onClick={() => { stop(); onBack(errorProfile) }}>✕</button>
@@ -282,39 +390,42 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
         {question && (
           <div style={{display:'flex',alignItems:'flex-start',gap:'10px',marginBottom:'12px'}}>
             <div style={{flex:1,background:'white',borderRadius:'20px',padding:'20px',boxShadow:'0 2px 12px rgba(0,0,0,0.06)',textAlign:'center'}}>
-              <p style={{fontSize:'1.3rem',fontWeight:600,lineHeight:1.6,color:'#2D3436'}}>{question.promptNarrative || question.prompt}</p>
+              <p style={{fontSize:'1.3rem',fontWeight:600,lineHeight:1.6,color:'#2D3436'}}>{question.prompt}</p>
             </div>
             <SpeakButton text={question.promptNarrative || question.prompt} speaking={speaking} onSpeak={speak} />
           </div>
         )}
 
+        {retryHint && !feedback && <RetryHintBanner hint={retryHint} upgraded={retryUpgraded} />}
+
+        {question?.visual && !hideVisual && <QuestionVisual visual={question.visual} visualFocus={visualFocus} />}
+
         {question && (
           <div style={{flex:1}}>
             {question.manipulative?.mode === 'drag_combine' ? (
-              <DragCombine key={qIndex} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
+              <DragCombine key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
+            ) : question.manipulative?.mode === 'drag_split' ? (
+              <DragSplit key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
+            ) : question.manipulative?.mode === 'drag_share' ? (
+              <DragShare key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
+            ) : question.manipulative?.mode === 'fill_array' ? (
+              <FillArray key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
             ) : question.manipulative?.mode === 'count' ? (
-              <CountAndTap key={qIndex} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
+              <CountAndTap key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} speak={speak} />
+            ) : question.manipulative?.mode === 'compare_count' ? (
+              <CompareCount key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
+            ) : question.manipulative?.mode === 'pick_one' ? (
+              <PickOne key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
             ) : (
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
-                {question.choice?.options.map((opt, idx) => {
-                  let bg = 'white', border = '2px solid #E8ECF0'
-                  if (feedback) {
-                    if (opt === question.answer) { bg = '#E8F5E9'; border = '2px solid #4CAF50' }
-                    else if (opt === feedback.userAnswer) { bg = '#FFEBEE'; border = '2px solid #FF6B6B' }
-                    else { bg = '#F5F5F5'; border = '2px solid #E8ECF0' }
-                  }
-                  return (
-                    <button key={idx} style={{position:'relative',padding:'20px 12px',borderRadius:'16px',fontSize:'1.2rem',fontWeight:600,transition:'all 0.15s ease',textAlign:'center',backgroundColor:bg,border,cursor:feedback?'default':'pointer',transform:feedback&&opt===question.answer?'scale(1.05)':'scale(1)'}}
-                      disabled={!!feedback} onClick={() => !feedback && handleAnswer(opt)}>
-                      <span style={{fontSize:'1.5rem',color:'#2D3436'}}>{opt}</span>
-                      {!feedback && (
-                        <span style={{position:'absolute',top:'4px',right:'8px',fontSize:'0.75rem',opacity:0.4}}
-                          onClick={(e) => { e.stopPropagation(); speak(String(opt)) }}>🔊</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+              <ChoiceGrid
+                key={attemptKey}
+                question={question}
+                feedback={feedback}
+                retryHint={retryHint}
+                disabled={!!feedback}
+                onAnswer={handleAnswer}
+                onSpeak={speak}
+              />
             )}
           </div>
         )}
@@ -322,14 +433,28 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
         {feedback && (
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',borderRadius:'16px',marginTop:'12px',backgroundColor:feedback.type==='correct'?'#E8F5E9':'#FFEBEE',border:feedback.type==='correct'?'2px solid #4CAF50':'2px solid #FF6B6B'}}>
             <span style={{fontSize:'1.1rem',fontWeight:600,color:feedback.type==='correct'?'#2E7D32':'#C62828'}}>
-              {feedback.type === 'correct' ? '✓ 答对了！' : `✗ 答案是 ${feedback.correctAnswer}`}
+              {feedback.type === 'correct'
+                ? (feedback.retrySuccess ? '✓ 坚持对了！💪' : '✓ 答对了！')
+                : feedback.canRetry
+                  ? '✗ 不对哦，再想想？'
+                  : `✗ 答案是 ${feedback.correctAnswer}`}
             </span>
-            <button style={{background:'#4F8CF6',color:'white',border:'none',padding:'10px 24px',borderRadius:'12px',fontSize:'1rem',fontWeight:600,cursor:'pointer'}}
-              onClick={handleNext}>{qIndex < totalQ - 1 ? '下一题 →' : '查看成绩'}</button>
+            {feedback.type === 'correct' || !feedback.canRetry ? (
+              <button style={{background:'#4F8CF6',color:'white',border:'none',padding:'10px 24px',borderRadius:'12px',fontSize:'1rem',fontWeight:600,cursor:'pointer'}}
+                onClick={handleNext}>{qIndex < totalQ - 1 ? '下一题 →' : '查看成绩'}</button>
+            ) : (
+              <button style={{background:'#FFB347',color:'white',border:'none',padding:'10px 24px',borderRadius:'12px',fontSize:'1rem',fontWeight:600,cursor:'pointer'}}
+                onClick={() => { playSafe(playClick); handleRetry() }}>再试一次</button>
+            )}
           </div>
         )}
 
-        {celebrate && <CelebrationEffect type={celebrate} duration={celebrate === 'complete' ? 1500 : 800} />}
+        {celebrate && (
+          <CelebrationEffect
+            type={celebrate}
+            duration={celebrate === 'complete' ? 1500 : celebrate === 'retry_correct' ? 900 : 800}
+          />
+        )}
       </div>
     )
   }
@@ -362,7 +487,7 @@ export default function GameScreen({ skillId, onBack, onMastered }) {
           )}
           <div style={{display:'flex',gap:'12px',justifyContent:'center'}}>
             <button style={{background:'#FFB347',color:'white',border:'none',padding:'12px 24px',borderRadius:'14px',fontSize:'1.1rem',fontWeight:600,cursor:'pointer'}}
-              onClick={() => { stop(); setPhase('play'); setQIndex(0); setScore(0); setMascotMood('idle'); nextQuestion() }}>
+              onClick={() => { stop(); sessionSeenRef.current = new Set(); recoveryBoostRef.current = { difficultyDrop: 0, roundsLeft: 0 }; setPhase('play'); setQIndex(0); setScore(0); setMascotMood('idle'); nextQuestion() }}>
               再练一次
             </button>
             <button style={{background:'#4F8CF6',color:'white',border:'none',padding:'12px 24px',borderRadius:'14px',fontSize:'1.1rem',fontWeight:600,cursor:'pointer'}}

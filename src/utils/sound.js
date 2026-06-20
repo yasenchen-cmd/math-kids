@@ -28,6 +28,25 @@ export function playCorrect() {
   } catch (e) { /* silent */ }
 }
 
+export function playRetryCorrect() {
+  try {
+    const ctx = getCtx()
+    const notes = [440, 554]
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12)
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.12 + 0.35)
+      osc.start(ctx.currentTime + i * 0.12)
+      osc.stop(ctx.currentTime + i * 0.12 + 0.35)
+    })
+  } catch (e) { /* silent */ }
+}
+
 export function playWrong() {
   try {
     const ctx = getCtx()

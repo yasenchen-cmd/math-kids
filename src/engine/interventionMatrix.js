@@ -16,6 +16,21 @@
 // ===== 干预规则定义 =====
 const INTERVENTIONS = [
   {
+    id: 'recent_wrong_answer',
+    priority: 85,
+    match: (profile) => (profile.consecutiveErrors || 0) >= 1,
+    modify: (base) => ({
+      ...base,
+      difficultyBoost: (base.difficultyBoost || 0) - 1,
+      forceInteractive: true,
+      stepByStep: true,
+      maxItems: Math.min(base.maxItems || 10, 5),
+    }),
+    feedback: '没关系，我们用手来试一试～',
+    rounds: 2,
+  },
+
+  {
     id: 'consecutive_errors',
     priority: 90,
     match: (profile) => (profile.consecutiveErrors || 0) >= 3,

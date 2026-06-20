@@ -1,31 +1,35 @@
 /**
  * 庆祝动画效果
- * 答对时撒花 / 通关时放烟花
+ * correct — 首次答对撒花
+ * retry_correct — 再试答对：温和上升粒子
+ * complete — 通关烟花
  */
 
 import { useEffect, useState } from 'react'
 
-const EMOJIS = ['⭐', '🌟', '✨', '🎉', '🎊', '💫', '🌈', '🌸', '💖', '🎀']
+const FESTIVE_EMOJIS = ['⭐', '🌟', '✨', '🎉', '🎊', '💫', '🌈', '🌸', '💖', '🎀']
+const RETRY_EMOJIS = ['💪', '👏', '🌱', '✨', '🌟', '💛', '🌼', '🙌']
 
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min
 }
 
-function Particle({ emoji, startTime, duration }) {
-  const delay = randomBetween(0, 0.2)
-  const x = randomBetween(-80, 80)
-  const y = randomBetween(-120, -20)
-  const rot = randomBetween(-180, 180)
-  const scale = randomBetween(0.5, 1.2)
+function Particle({ emoji, duration, variant = 'burst' }) {
+  const delay = randomBetween(0, variant === 'rise' ? 0.15 : 0.2)
+  const x = randomBetween(variant === 'rise' ? -40 : -80, variant === 'rise' ? 40 : 80)
+  const y = randomBetween(variant === 'rise' ? -100 : -120, variant === 'rise' ? -40 : -20)
+  const rot = randomBetween(-90, 90)
+  const scale = randomBetween(variant === 'rise' ? 0.7 : 0.5, variant === 'rise' ? 1 : 1.2)
+  const anim = variant === 'rise' ? 'particleRise' : 'particleFly'
 
   return (
     <div style={{
       position: 'absolute',
       left: '50%',
-      top: '50%',
-      fontSize: '1.5rem',
+      top: variant === 'rise' ? '62%' : '50%',
+      fontSize: variant === 'rise' ? '1.35rem' : '1.5rem',
       pointerEvents: 'none',
-      animation: `particleFly ${duration}s ease-out ${delay}s forwards`,
+      animation: `${anim} ${duration}s ease-out ${delay}s forwards`,
       opacity: 0,
       '--x': `${x}px`,
       '--y': `${y}px`,
@@ -37,21 +41,27 @@ function Particle({ emoji, startTime, duration }) {
   )
 }
 
+const STYLE_BY_TYPE = {
+  correct: { count: 8, pool: FESTIVE_EMOJIS, variant: 'burst' },
+  retry_correct: { count: 5, pool: RETRY_EMOJIS, variant: 'rise' },
+  complete: { count: 20, pool: FESTIVE_EMOJIS, variant: 'burst' },
+}
+
 export default function CelebrationEffect({ type = 'correct', duration = 1000 }) {
   const [particles, setParticles] = useState([])
   const [visible, setVisible] = useState(true)
+  const config = STYLE_BY_TYPE[type] || STYLE_BY_TYPE.correct
 
   useEffect(() => {
-    const count = type === 'complete' ? 20 : 8
-    const items = Array.from({ length: count }, (_, i) => ({
+    const items = Array.from({ length: config.count }, (_, i) => ({
       id: i,
-      emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+      emoji: config.pool[Math.floor(Math.random() * config.pool.length)],
     }))
     setParticles(items)
 
     const timer = setTimeout(() => setVisible(false), duration + 300)
     return () => clearTimeout(timer)
-  }, [type, duration])
+  }, [type, duration, config.count, config.pool])
 
   if (!visible) return null
 
@@ -62,17 +72,23 @@ export default function CelebrationEffect({ type = 'correct', duration = 1000 })
       pointerEvents: 'none',
       zIndex: 300,
     }}>
-      {/* 注入 keyframes */}
       <style>{`
         @keyframes particleFly {
           0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(0); }
           30% { opacity: 1; transform: translate(calc(var(--x) * 0.3), calc(var(--y) * 0.3)) rotate(calc(var(--rot) * 0.3)) scale(var(--scale)); }
           100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--rot)) scale(0.3); }
         }
+        @keyframes particleRise {
+          0% { opacity: 0; transform: translate(0, 12px) scale(0.4); }
+          20% { opacity: 1; transform: translate(calc(var(--x) * 0.2), calc(var(--y) * 0.15)) scale(var(--scale)); }
+          100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.85); }
+        }
       `}</style>
       {particles.map(p => (
-        <Particle key={p.id} emoji={p.emoji} startTime={0} duration={duration / 1000} />
+        <Particle key={p.id} emoji={p.emoji} duration={duration / 1000} variant={config.variant} />
       ))}
     </div>
   )
 }
+
+export { STYLE_BY_TYPE }

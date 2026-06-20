@@ -16,6 +16,8 @@
 import { eventBus, Events } from './eventBus'
 import { States } from './sessionState'
 
+const notRetried = (p) => !p.retried
+
 // ===== 每个状态下的指令表 =====
 // 指令可以绑定到：
 //   onEnter: 进入状态时触发
@@ -30,8 +32,7 @@ const DIRECTIVES = {
     ],
     onEvent: {
       [Events.ANSWER_CORRECT]: [
-        { type: 'mascot_speak', mood: 'happy', delay: 200 },
-        { type: 'celebrate', intensity: 'normal', delay: 100 },
+        { type: 'celebrate', intensity: 'normal', condition: notRetried, delay: 100 },
       ],
       [Events.ANSWER_WRONG]: [
         { type: 'mascot_speak', mood: 'encourage', delay: 300 },
@@ -46,8 +47,7 @@ const DIRECTIVES = {
     ],
     onEvent: {
       [Events.ANSWER_CORRECT]: [
-        // 连续答对 3 题时高调庆祝
-        { type: 'celebrate', intensity: 'high', condition: (ctx) => ctx.streak >= 3, delay: 100 },
+        { type: 'celebrate', intensity: 'high', condition: (ctx) => ctx.streak >= 3 && notRetried(ctx), delay: 100 },
       ],
       [Events.ANSWER_WRONG]: [
         { type: 'mascot_speak', mood: 'encourage', delay: 300 },
@@ -63,9 +63,7 @@ const DIRECTIVES = {
     ],
     onEvent: {
       [Events.ANSWER_CORRECT]: [
-        // 在困难中答对——大力庆祝
-        { type: 'celebrate', intensity: 'high', delay: 100 },
-        { type: 'mascot_speak', mood: 'celebrate', delay: 500, text: '太厉害了！这一题很难的！' },
+        { type: 'celebrate', intensity: 'high', condition: notRetried, delay: 100 },
       ],
       [Events.ANSWER_WRONG]: [
         { type: 'mascot_speak', mood: 'encourage', delay: 300 },
@@ -83,8 +81,7 @@ const DIRECTIVES = {
     ],
     onEvent: {
       [Events.ANSWER_CORRECT]: [
-        { type: 'celebrate', intensity: 'over_the_top', delay: 100 },
-        { type: 'mascot_speak', mood: 'celebrate', delay: 800 },
+        { type: 'celebrate', intensity: 'over_the_top', condition: notRetried, delay: 100 },
       ],
     },
   },
@@ -96,7 +93,7 @@ const DIRECTIVES = {
     ],
     onEvent: {
       [Events.ANSWER_CORRECT]: [
-        { type: 'celebrate', intensity: 'normal', delay: 100 },
+        { type: 'celebrate', intensity: 'normal', condition: notRetried, delay: 100 },
       ],
     },
   },
@@ -108,9 +105,6 @@ const DIRECTIVES = {
       { type: 'difficulty_up', level: 1, delay: 500 },
     ],
     onEvent: {
-      [Events.ANSWER_CORRECT]: [
-        { type: 'mascot_speak', mood: 'happy', condition: (ctx) => ctx.streak % 3 === 0, delay: 200 },
-      ],
       [Events.ANSWER_WRONG]: [
         { type: 'mascot_speak', mood: 'encourage', delay: 200 },
       ],

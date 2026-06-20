@@ -16,9 +16,13 @@ const DEFAULT = {
   distractors: 2,
 }
 
+function getSkillErrors(skillId, errorProfile = {}) {
+  return errorProfile.skillErrors?.[skillId] ?? 0
+}
+
 export function getAdaptiveConfig(skillId, skillScores = {}, errorProfile = {}) {
   const score = skillScores[skillId] || 0
-  const errors = errorProfile[skillId] || 0
+  const errors = getSkillErrors(skillId, errorProfile)
 
   let difficulty = 1
   let helpLevel = 2
@@ -52,12 +56,14 @@ export function getAdaptiveConfig(skillId, skillScores = {}, errorProfile = {}) 
     autoRead = true
   }
 
-  return { difficulty, helpLevel, showVisual, autoRead, distractors }
+  const preferInteractive = helpLevel >= 2 || (errorProfile.consecutiveErrors || 0) >= 1
+
+  return { difficulty, helpLevel, showVisual, autoRead, distractors, preferInteractive }
 }
 
 export function calcMastery(skillId, skillScores = {}, errorProfile = {}) {
   const score = skillScores[skillId] || 0
-  const errors = errorProfile[skillId] || 0
+  const errors = getSkillErrors(skillId, errorProfile)
   return Math.max(0, Math.min(100, score - errors * 5))
 }
 

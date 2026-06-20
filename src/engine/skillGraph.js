@@ -307,7 +307,7 @@ const skillGraph = {
     name: '认识钟表',
     area: 'advanced',
     order: 1,
-    dependencies: ['counting_1_12'],
+    dependencies: ['counting_1_10'],
     visualThemes: ['clock'],
     interactionModes: ['select'],
     generator: 'time',
