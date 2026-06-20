@@ -1,8 +1,9 @@
 /**
- * 中文数字语音识别 — 轻量解析，不支持时静默降级
+ * 中文数字语音识别 — 主要支持 Android Chrome；iOS/iPadOS 不可靠
  */
 
 import { useState, useCallback, useRef } from 'react'
+import { isSpeechRecognitionReliable } from '../utils/platform.js'
 
 const CN_DIGIT = {
   零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4,
@@ -34,51 +35,73 @@ function getRecognitionCtor() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null
 }
 
+const ERROR_MSG = {
+  'not-allowed': '请在浏览器设置里允许麦克风，或直接点数字',
+  'service-not-allowed': '这个浏览器不支持听语音，请直接点数字',
+  'no-speech': '没听到声音，请大声一点，或直接点数字',
+  'aborted': '听语音已取消，请直接点数字',
+  network: '网络不好，请直接点数字',
+  audio: '麦克风不可用，请直接点数字',
+}
+
+export function speechRecognitionErrorMessage(code) {
+  return ERROR_MSG[code] || '没听清，请直接点下面的数字'
+}
+
 export default function useSpeechRecognition() {
   const [listening, setListening] = useState(false)
   const recRef = useRef(null)
-  const supported = !!getRecognitionCtor()
+  const supported = isSpeechRecognitionReliable()
 
-  const listen = useCallback((onNumber, { timeoutMs = 4000 } = {}) => {
+  const listen = useCallback((onResult, { timeoutMs = 6000 } = {}) => {
     const Ctor = getRecognitionCtor()
-    if (!Ctor) return false
+    if (!Ctor || !supported) return false
 
     try {
       if (recRef.current) {
-        try { recRef.current.stop() } catch { /* noop */ }
+        try { recRef.current.abort?.() || recRef.current.stop() } catch { /* noop */ }
       }
 
       const rec = new Ctor()
       rec.lang = 'zh-CN'
       rec.interimResults = false
+      rec.continuous = false
       rec.maxAlternatives = 5
       recRef.current = rec
 
       let settled = false
-      const finish = (value) => {
+      const finish = (value, errorCode = null) => {
         if (settled) return
         settled = true
         setListening(false)
         try { rec.stop() } catch { /* noop */ }
-        if (value != null) onNumber?.(value)
+        onResult?.({ value, error: errorCode })
       }
 
-      const timer = setTimeout(() => finish(null), timeoutMs)
+      const timer = setTimeout(() => finish(null, 'no-speech'), timeoutMs)
 
       rec.onresult = (event) => {
         clearTimeout(timer)
         const transcript = Array.from(event.results)
           .map(r => r[0]?.transcript || '')
           .join('')
-        finish(parseChineseNumber(transcript))
+        const value = parseChineseNumber(transcript)
+        finish(value, value == null ? 'no-speech' : null)
       }
 
-      rec.onerror = () => {
+      rec.onerror = (event) => {
         clearTimeout(timer)
-        finish(null)
+        finish(null, event.error || 'unknown')
       }
 
-      rec.onend = () => setListening(false)
+      rec.onend = () => {
+        setListening(false)
+        if (!settled) {
+          clearTimeout(timer)
+          finish(null, 'no-speech')
+        }
+      }
+
       setListening(true)
       rec.start()
       return true
@@ -86,10 +109,12 @@ export default function useSpeechRecognition() {
       setListening(false)
       return false
     }
-  }, [])
+  }, [supported])
 
   const stop = useCallback(() => {
-    try { recRef.current?.stop() } catch { /* noop */ }
+    try {
+      recRef.current?.abort?.() || recRef.current?.stop()
+    } catch { /* noop */ }
     setListening(false)
   }, [])
 

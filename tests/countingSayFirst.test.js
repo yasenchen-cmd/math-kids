@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseChineseNumber } from '../src/hooks/useSpeechRecognition.js'
+import { parseChineseNumber, speechRecognitionErrorMessage } from '../src/hooks/useSpeechRecognition.js'
 import { generateQuestion } from '../src/engine/questionGenerator.js'
 
 describe('parseChineseNumber', () => {
@@ -35,5 +35,12 @@ describe('counting say-first flow', () => {
         return
       }
     }
+  })
+})
+
+describe('speech platform helpers', () => {
+  it('maps recognition errors to child-friendly hints', () => {
+    expect(speechRecognitionErrorMessage('not-allowed')).toMatch(/麦克风/)
+    expect(speechRecognitionErrorMessage('no-speech')).toMatch(/没听到/)
   })
 })

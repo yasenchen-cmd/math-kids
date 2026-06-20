@@ -1,84 +1,117 @@
 /**
- * 语音朗读系统
- *
- * 使用 Web Speech API (TTS) 朗读中文
- * 包含完整的降级处理：
- * - TTS 不可用时优雅降级（不会卡死）
- * - 核心激励语句用 Web Audio API 合成音效（跨平台一致）
+ * 语音朗读系统 — Web Speech API (TTS)
+ * 针对 iOS / iPadOS：预加载 voice、resume 防静音、需用户点击触发
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 
-// TTS 可用性检测
-let ttsSupported = null
-function checkTTSSupport() {
-  if (ttsSupported !== null) return ttsSupported
-  if (typeof window === 'undefined') {
-    ttsSupported = false
-    return false
-  }
+let voicesCache = []
+let voicesReady = false
+
+function getSynth() {
+  if (typeof window === 'undefined') return null
   try {
-    ttsSupported = !!window.speechSynthesis
-  } catch (e) {
-    ttsSupported = false
+    return window.speechSynthesis || null
+  } catch {
+    return null
   }
-  return ttsSupported
+}
+
+function refreshVoices() {
+  const synth = getSynth()
+  if (!synth) return []
+  voicesCache = synth.getVoices() || []
+  if (voicesCache.length > 0) voicesReady = true
+  return voicesCache
+}
+
+function pickZhVoice(voices) {
+  return voices.find(v => v.lang.startsWith('zh-CN'))
+    || voices.find(v => v.lang.startsWith('zh'))
+    || null
+}
+
+function resumeSynth(synth) {
+  if (!synth) return
+  try {
+    if (synth.paused) synth.resume()
+  } catch { /* noop */ }
+}
+
+export function primeSpeech() {
+  const synth = getSynth()
+  if (!synth) return
+  refreshVoices()
+  resumeSynth(synth)
 }
 
 export default function useSpeech() {
   const [speaking, setSpeaking] = useState(false)
-  const [ttsAvailable, setTtsAvailable] = useState(() => checkTTSSupport())
+  const [ttsAvailable, setTtsAvailable] = useState(() => !!getSynth())
   const utteranceRef = useRef(null)
+  const spokeOnceRef = useRef(false)
+
+  useEffect(() => {
+    const synth = getSynth()
+    if (!synth) return undefined
+    refreshVoices()
+    const onVoices = () => refreshVoices()
+    synth.addEventListener?.('voiceschanged', onVoices)
+    window.speechSynthesis.onvoiceschanged = onVoices
+    return () => {
+      synth.removeEventListener?.('voiceschanged', onVoices)
+    }
+  }, [])
 
   const speak = useCallback((text, options = {}) => {
     if (!text) return
 
-    const synth = window.speechSynthesis
-    if (!synth) return // TTS 不可用，静默降级
+    const synth = getSynth()
+    if (!synth) return
 
-    // 取消正在读的
     try {
       synth.cancel()
-    } catch (e) {
-      // 某些浏览器在取消时可能抛异常
-    }
+    } catch { /* noop */ }
 
-    try {
+    resumeSynth(synth)
+
+    const deliver = () => {
+      const voices = refreshVoices()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'zh-CN'
       utterance.rate = options.rate ?? 0.85
       utterance.pitch = options.pitch ?? 1.1
       utterance.volume = options.volume ?? 1
 
-      // 尝试选中文语音
-      const voices = synth.getVoices()
-      const zhVoice = voices.find(v =>
-        v.lang.startsWith('zh') &&
-        (v.name.includes('Female') || v.name.includes('女生') || v.name.includes('Microsoft'))
-      ) || voices.find(v => v.lang.startsWith('zh'))
+      const zhVoice = pickZhVoice(voices)
       if (zhVoice) utterance.voice = zhVoice
 
-      utterance.onstart = () => setSpeaking(true)
+      utterance.onstart = () => {
+        spokeOnceRef.current = true
+        setSpeaking(true)
+      }
       utterance.onend = () => setSpeaking(false)
       utterance.onerror = () => setSpeaking(false)
 
       utteranceRef.current = utterance
+      resumeSynth(synth)
       synth.speak(utterance)
-    } catch (e) {
-      // TTS 失败，静默降级
-      setSpeaking(false)
+      setTimeout(() => resumeSynth(synth), 100)
+    }
+
+    if (!voicesReady) {
+      setTimeout(deliver, voicesCache.length === 0 ? 200 : 0)
+    } else {
+      deliver()
     }
   }, [])
 
   const stop = useCallback(() => {
     try {
-      const synth = window.speechSynthesis
-      if (synth) synth.cancel()
-    } catch (e) {
-      // 静默
-    }
+      getSynth()?.cancel()
+    } catch { /* noop */ }
     setSpeaking(false)
   }, [])
 
-  return { speak, stop, speaking, ttsAvailable }
+  return { speak, stop, speaking, ttsAvailable, primeSpeech }
 }

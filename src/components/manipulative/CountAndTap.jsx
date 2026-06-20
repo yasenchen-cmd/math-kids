@@ -4,8 +4,12 @@
  * say 阶段：看物报数（可选语音识别 + 点选确认）
  * count 阶段：逐个点数（原有交互）
  */
-import { useState, useCallback, useEffect } from 'react'
-import useSpeechRecognition from '../../hooks/useSpeechRecognition'
+import { useState, useCallback } from 'react'
+import useSpeechRecognition, { speechRecognitionErrorMessage } from '../../hooks/useSpeechRecognition'
+import SpeakButton from '../SpeakButton'
+import { isAppleTouchDevice } from '../../utils/platform'
+
+const SAY_PROMPT = '看看图，先大声说出有几个！'
 
 function ItemsGrid({ items, tapped, showResult, interactive, onTap, onUntap }) {
   return (
@@ -35,7 +39,7 @@ function ItemsGrid({ items, tapped, showResult, interactive, onTap, onUntap }) {
   )
 }
 
-export default function CountAndTap({ question, onAnswer, disabled, speak }) {
+export default function CountAndTap({ question, onAnswer, disabled, speak, speaking }) {
   const { manipulative } = question
   if (!manipulative || manipulative.mode !== 'count') {
     return fallbackRender(question)
@@ -54,11 +58,7 @@ export default function CountAndTap({ question, onAnswer, disabled, speak }) {
   const [pickedSay, setPickedSay] = useState(null)
 
   const { listen, listening, supported: sttSupported } = useSpeechRecognition()
-
-  useEffect(() => {
-    if (phase !== 'say' || disabled) return
-    speak?.('看看图，先大声说出有几个！', { rate: 0.82 })
-  }, [phase, disabled, speak])
+  const onApple = isAppleTouchDevice()
 
   const goToCount = useCallback((message) => {
     setPhase('count')
@@ -82,13 +82,16 @@ export default function CountAndTap({ question, onAnswer, disabled, speak }) {
 
   const handleListen = useCallback(() => {
     if (disabled || listening) return
-    const started = listen((n) => {
-      if (n == null) {
-        setSayFeedback('没听清，你可以点下面的数字，或者说「我要数」')
-        speak?.('没听清，点一下你说的数字吧', { rate: 0.85 })
+    setSayFeedback('正在听…请大声说出数字')
+    const started = listen(({ value, error }) => {
+      if (value != null) {
+        setSayFeedback('')
+        handleSayAnswer(value)
         return
       }
-      handleSayAnswer(n)
+      const msg = speechRecognitionErrorMessage(error)
+      setSayFeedback(msg)
+      speak?.(msg, { rate: 0.85 })
     })
     if (!started) {
       setSayFeedback('这里不能听语音，点一下你说的数字吧')
@@ -123,15 +126,29 @@ export default function CountAndTap({ question, onAnswer, disabled, speak }) {
       <div style={container}>
         <div style={sayBanner}>
           <span style={sayIcon}>🗣️</span>
-          <div>
-            <div style={sayTitle}>先看看，大声说出有几个！</div>
-            <div style={saySub}>说出来后，点对应的数字；说不出来就一个一个数</div>
+          <div style={{ flex: 1 }}>
+            <div style={sayTitleRow}>
+              <div style={sayTitle}>先看看，大声说出有几个！</div>
+              {speak && (
+                <SpeakButton
+                  text={SAY_PROMPT}
+                  speaking={speaking}
+                  onSpeak={(t) => speak(t, { rate: 0.82 })}
+                  size="small"
+                />
+              )}
+            </div>
+            <div style={saySub}>
+              {onApple
+                ? 'iPad/iPhone：先点 🔊 听题目，说出来后点数字'
+                : '说出来后点数字；点 🔊 可再听一遍'}
+            </div>
           </div>
         </div>
 
         <ItemsGrid items={items} interactive={false} />
 
-        {sttSupported && (
+        {sttSupported ? (
           <button
             type="button"
             style={{
@@ -142,9 +159,11 @@ export default function CountAndTap({ question, onAnswer, disabled, speak }) {
             disabled={disabled || listening}
             onClick={handleListen}
           >
-            {listening ? '🎤 正在听…' : '🎤 我说完了（听一听）'}
+            {listening ? '🎤 正在听…请说话' : '🎤 我说完了（听一听）'}
           </button>
-        )}
+        ) : onApple ? (
+          <div style={appleHint}>📱 苹果设备请大声说出来，再点下面的数字（不支持听语音）</div>
+        ) : null}
 
         <div style={sayPrompt}>点一下你说的数字：</div>
         <div style={sayGrid}>
@@ -263,8 +282,23 @@ const sayBanner = {
 }
 
 const sayIcon = { fontSize: '1.6rem', flexShrink: 0 }
-const sayTitle = { fontSize: '1.05rem', fontWeight: 700, color: '#1565C0' }
+const sayTitle = { fontSize: '1.05rem', fontWeight: 700, color: '#1565C0', flex: 1 }
+const sayTitleRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  justifyContent: 'space-between',
+}
 const saySub = { fontSize: '0.85rem', color: '#1976D2', marginTop: '4px', lineHeight: 1.4 }
+
+const appleHint = {
+  textAlign: 'center',
+  fontSize: '0.9rem',
+  color: '#636E72',
+  background: '#F5F5F5',
+  borderRadius: '12px',
+  padding: '10px 12px',
+}
 
 const sayPrompt = {
   textAlign: 'center',

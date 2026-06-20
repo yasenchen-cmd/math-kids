@@ -411,7 +411,7 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
             ) : question.manipulative?.mode === 'fill_array' ? (
               <FillArray key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
             ) : question.manipulative?.mode === 'count' ? (
-              <CountAndTap key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} speak={speak} />
+              <CountAndTap key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} speak={speak} speaking={speaking} />
             ) : question.manipulative?.mode === 'compare_count' ? (
               <CompareCount key={attemptKey} question={question} onAnswer={handleAnswer} disabled={!!feedback} />
             ) : question.manipulative?.mode === 'pick_one' ? (
