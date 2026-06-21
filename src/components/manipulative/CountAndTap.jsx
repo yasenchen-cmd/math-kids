@@ -148,7 +148,7 @@ export default function CountAndTap({ question, onAnswer, disabled, speak, speak
 
         <ItemsGrid items={items} interactive={false} />
 
-        {sttSupported && (
+        {sttSupported ? (
           <button
             type="button"
             style={{
@@ -161,10 +161,9 @@ export default function CountAndTap({ question, onAnswer, disabled, speak, speak
           >
             {listening ? '🎤 正在听…请说话' : '🎤 我说完了（听一听）'}
           </button>
-        )}
-        {onApple && (
-          <div style={appleHint}>📱 iOS 16.5 以上支持语音识别；如不行请直接点数字</div>
-        )}
+        ) : onApple ? (
+          <div style={appleHint}>📱 iPhone/iPad请大声说出来，再点下面的数字</div>
+        ) : null}
 
         <div style={sayPrompt}>点一下你说的数字：</div>
         <div style={sayGrid}>

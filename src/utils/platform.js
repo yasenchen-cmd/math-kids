@@ -9,14 +9,15 @@ export function isAppleTouchDevice() {
 }
 
 /**
- * 检测是否支持 Web 语音识别
+ * 检测 Web Speech Recognition 是否真正可用
  *
- * iOS 16.5+ 的 Safari 已支持 SpeechRecognition（webkitSpeechRecognition），
- * 但仍需用户手势触发且识别精度受限。这里不再提前拦截苹果设备，
- * 让浏览器自己决定是否可用，失败时由调用方处理错误提示。
+ * 注意：iOS Safari 上 `webkitSpeechRecognition` 构造函数虽然存在，
+ * 但调用 `start()` 时返回 'service-not-allowed'，实际不可用。
+ * 这里提前拦截苹果设备，由调用方提供友好的降级指引。
  */
 export function isSpeechRecognitionReliable() {
   if (typeof window === 'undefined') return false
+  if (isAppleTouchDevice()) return false
   const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition
   return !!Ctor
 }

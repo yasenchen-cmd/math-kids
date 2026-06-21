@@ -1,6 +1,7 @@
 /**
- * 中文数字语音识别 — iOS 16.5+ Safari 支持，Android Chrome 支持
- * 不支持的浏览器自动降级为手点数字
+ * 中文数字语音识别 — Android Chrome / 桌面 Chrome 可用
+ * iOS Safari 构造函数存在但实际服务不可用（service-not-allowed），
+ * 由 platform.isSpeechRecognitionReliable() 拦截并降级为手点数字
  */
 
 import { useState, useCallback, useRef } from 'react'
