@@ -21,19 +21,42 @@ button{width:100%;padding:14px 0;margin-top:12px;background:#D4380D;color:#fff;b
 <h1>🔓 数学闯关 · 解锁码生成</h1>
 <p>收到买家付款后，输入对方的设备 ID，生成解锁码发给他</p>
 <input type="text" id="deviceId" placeholder="粘贴买家的设备 ID" autocomplete="off" />
-<button onclick="generate()">生成解锁码</button>
+<button type="button" onclick="generate()">生成解锁码</button>
 <div class="result" id="result">
   <div class="label">将此解锁码发给买家</div>
   <div class="code" id="code"></div>
-  <div class="hint">买家在 App 中输入此解锁码即可使用</div>
+  <div class="hint">须与 App 内算法一致（mn-unlock-v2）。买家输入此码即可解锁。</div>
 </div>
 <script>
+/** 与 src/utils/unlockCode.js 保持同步 */
+const UNLOCK_SECRET = 'mn-unlock-v2'
+
+function hashDigest(str) {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  let h2 = 2166136261
+  const mid = (h >>> 0) + ':' + str.length + ':' + UNLOCK_SECRET
+  for (let i = 0; i < mid.length; i++) {
+    h2 ^= mid.charCodeAt(i)
+    h2 = Math.imul(h2, 16777619)
+  }
+  const a = (h >>> 0).toString(16).padStart(8, '0')
+  const b = (h2 >>> 0).toString(16).padStart(8, '0')
+  return a + b
+}
+
+function generateUnlockCode(deviceId) {
+  const digest = hashDigest(UNLOCK_SECRET + ':' + deviceId.trim())
+  return btoa(digest).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
 function generate() {
   const id = document.getElementById('deviceId').value.trim()
   if (!id) return alert('请输入设备 ID')
-  const secret = 'mn-unlock-v1'
-  const code = btoa(secret + ':' + id).replace(/=/g, '')
-  document.getElementById('code').textContent = code
+  document.getElementById('code').textContent = generateUnlockCode(id)
   document.getElementById('result').style.display = 'block'
 }
 </script>
