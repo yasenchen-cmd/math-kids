@@ -12,12 +12,15 @@ describe('generateUniqueQuestion', () => {
   it('avoids duplicate fingerprints within a session', () => {
     const seen = new Set()
     const fps = []
-    for (let i = 0; i < 5; i++) {
-      const q = generateUniqueQuestion('addition_within_5', { difficulty: 3 }, seen)
-      seen.add(questionFingerprint(q))
-      fps.push(questionFingerprint(q))
+    // 用题库更大的技能，避免小范围加法偶发撞指纹
+    for (let i = 0; i < 8; i++) {
+      const q = generateUniqueQuestion('addition_within_20', { difficulty: 4 }, seen)
+      const fp = questionFingerprint(q)
+      expect(seen.has(fp)).toBe(false)
+      seen.add(fp)
+      fps.push(fp)
     }
-    expect(new Set(fps).size).toBe(5)
+    expect(new Set(fps).size).toBe(8)
   })
 })
 

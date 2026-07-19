@@ -71,7 +71,7 @@ export function generateUniqueQuestion(skillId, options = {}, seen = new Set()) 
   do {
     q = generateQuestion(skillId, options)
     attempts++
-  } while (seen.has(questionFingerprint(q)) && attempts < 15)
+  } while (seen.has(questionFingerprint(q)) && attempts < 40)
   return q
 }
 
