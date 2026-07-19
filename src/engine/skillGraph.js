@@ -388,19 +388,25 @@ export function isSkillUnlockable(skillId, completedSkills) {
   return skill.dependencies.every(depId => completedSkills.includes(depId))
 }
 
-// 推荐下一个该学的技能
-export function recommendNext(completedSkills, skillScores) {
+/**
+ * 推荐下一个该学的技能
+ * @param {string[]} completedSkills 已掌握的技能 id
+ * @param {Record<string, number>} skillScores
+ * @param {(id: string) => boolean} [isImplemented] 可选：过滤未实现技能
+ */
+export function recommendNext(completedSkills, skillScores = {}, isImplemented) {
+  const completed = new Set(completedSkills || [])
   const skills = getAllSkills()
-  const unlocked = skills.filter(s =>
-    !completedSkills.includes(s.id) &&
-    s.dependencies.every(d => completedSkills.includes(d))
-  )
-  // 按关联的未完成前置技能数排序（优先推荐依赖已全部完成的）
-  // 再按 skillScores 中最低分的优先推荐
+  const unlocked = skills.filter(s => {
+    if (completed.has(s.id)) return false
+    if (typeof isImplemented === 'function' && !isImplemented(s.id)) return false
+    return s.dependencies.every(d => completed.has(d))
+  })
   unlocked.sort((a, b) => {
     const scoreA = skillScores[a.id] || 0
     const scoreB = skillScores[b.id] || 0
-    return scoreA - scoreB
+    if (scoreA !== scoreB) return scoreA - scoreB
+    return a.order - b.order
   })
   return unlocked[0] || null
 }

@@ -4,7 +4,7 @@
  * 闽南彩蛋：风狮爷解锁后在标题旁显示小标记
  */
 import { useState, useMemo } from 'react'
-import { getAllSkills, areas } from '../engine/skillGraph'
+import { getAllSkills, areas, recommendNext } from '../engine/skillGraph'
 import { calcMastery, isSkillMastered, areDepsMet } from '../engine/adaptive'
 import { isSkillImplemented } from '../engine/questionGenerator'
 import { getCharacter } from '../data/characters'
@@ -22,6 +22,12 @@ export default function SkillTreeView({ errorProfile, onSelectSkill, trialRemain
     [allSkills, skillScores, errorProfile]
   )
   const minnanUnlocked = isMinnanUnlocked()
+  const recommended = useMemo(() => {
+    const completed = allSkills
+      .filter(s => isSkillMastered(s.id, skillScores, errorProfile))
+      .map(s => s.id)
+    return recommendNext(completed, skillScores, isSkillImplemented)
+  }, [allSkills, skillScores, errorProfile])
 
   const skillsByArea = useMemo(() => {
     const grouped = {}
@@ -47,7 +53,7 @@ export default function SkillTreeView({ errorProfile, onSelectSkill, trialRemain
         <div style={masteryBanner}>
           <span>🏆</span>
           <span>{masteredCount}/{totalSkills} 技能已掌握</span>
-
+        </div>
         {!unlocked && trialRemaining > 0 && (
           <div style={trialBanner}>
             <span>🔍</span>
@@ -60,7 +66,22 @@ export default function SkillTreeView({ errorProfile, onSelectSkill, trialRemain
             <span>免费试用已结束，点击任意技能解锁全部内容</span>
           </div>
         )}
-        </div>
+        {recommended && (
+          <button
+            type="button"
+            style={recommendBanner}
+            onClick={() => {
+              const depMet = areDepsMet(recommended.dependencies, skillScores, errorProfile)
+              if (depMet && isSkillImplemented(recommended.id)) {
+                playSafe(playClick)
+                onSelectSkill(recommended.id)
+              }
+            }}
+          >
+            <span>👉</span>
+            <span>推荐下一关：{recommended.name}</span>
+          </button>
+        )}
       </div>
 
       <div style={list}>
@@ -197,4 +218,10 @@ const trialBannerExpired = {
   background:'#FFF3E0', color:'#E65100', border:'1.5px solid #FFCC80',
   padding:'6px 14px', borderRadius:'12px', fontSize:'0.8rem', fontWeight:500,
   marginTop:'8px', animation:'pulse 2s ease-in-out infinite',
+}
+const recommendBanner = {
+  display:'inline-flex', alignItems:'center', gap:'8px',
+  background:'#EEF4FF', color:'#1565C0', border:'1.5px solid #90CAF9',
+  padding:'8px 16px', borderRadius:'14px', fontSize:'0.85rem', fontWeight:600,
+  marginTop:'10px', cursor:'pointer',
 }

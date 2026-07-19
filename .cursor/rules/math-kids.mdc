@@ -1,0 +1,12 @@
+---
+description: Math-Kids 项目约定（引擎测试、解锁码、教具 mode、部署）
+alwaysApply: true
+---
+
+# Math-Kids
+
+- 改 `src/engine/` 或解锁逻辑后必须 `npm run test`
+- 解锁码：`src/utils/unlockCode.js` 与 `unlock-tool.html` 同步；勿提交 Worker/密钥
+- 新教具 mode：更新 `manipModes.js` + `ManipulativeRouter.jsx` + generator
+- 部署：`sh deploy.sh`，只提交 `docs/` 构建产物
+- 保持中文产品文案；无障碍改动优先 `aria-live` / 选项标签 / `prefers-reduced-motion`

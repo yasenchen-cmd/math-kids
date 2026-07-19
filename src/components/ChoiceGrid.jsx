@@ -21,11 +21,15 @@ export default function ChoiceGrid({ question, feedback, retryHint, disabled, on
   const isEmoji = style === 'emoji'
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: isEmoji ? '14px' : '10px',
-    }}>
+    <div
+      role="group"
+      aria-label="答题选项"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: isEmoji ? '14px' : '10px',
+      }}
+    >
       {options.map((opt, idx) => {
         let bg = 'white'
         let border = '2px solid #E8ECF0'
@@ -70,6 +74,7 @@ export default function ChoiceGrid({ question, feedback, retryHint, disabled, on
               justifyContent: 'center',
             }}
             disabled={disabled}
+            aria-label={`选项 ${opt}`}
             onClick={() => !disabled && onAnswer(opt)}
           >
             <span style={{

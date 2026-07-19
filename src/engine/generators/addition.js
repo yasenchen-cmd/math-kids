@@ -175,32 +175,24 @@ function genMakeTen(options) {
   const answer = 10
   const itemsA = Array(a).fill('🔵')
   const itemsB = Array(b).fill('🟠')
+  const items = [...itemsA, ...itemsB]
   const useManipulative = difficulty <= 2 || forceInteractive
+  const tenFrame = {
+    mode: 'drag_to_target',
+    items,
+    slots: 10,
+    targetLabel: '拖进十格板，凑成 10',
+    answer,
+  }
 
   return buildQuestion({
     skillId: 'make_ten',
     prompt: `${a} + ${b} = ?（凑成 10）`,
     promptNarrative: `${a} 再加 ${b} 就凑成 10 啦`,
     answer,
-    visual: useManipulative ? null : { type: 'emoji_grid', items: [...itemsA, ...itemsB] },
-    manipulative: useManipulative ? {
-      mode: 'drag_combine',
-      groups: [
-        { count: a, emoji: '🔵', label: `${a}` },
-        { count: b, emoji: '🟠', label: `${b}` },
-      ],
-      targetLabel: '凑成 10',
-      answer,
-    } : null,
-    interactiveFallback: useManipulative ? null : {
-      mode: 'drag_combine',
-      groups: [
-        { count: a, emoji: '🔵', label: `${a}` },
-        { count: b, emoji: '🟠', label: `${b}` },
-      ],
-      targetLabel: '凑成 10',
-      answer,
-    },
+    visual: useManipulative ? null : { type: 'emoji_grid', items },
+    manipulative: useManipulative ? tenFrame : null,
+    interactiveFallback: useManipulative ? null : tenFrame,
     choice: makeChoices(answer, [9, 11, a + b - 1].filter(n => n !== answer)),
     difficulty,
   })

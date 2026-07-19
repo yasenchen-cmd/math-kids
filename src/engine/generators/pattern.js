@@ -4,6 +4,7 @@
 
 import {
   buildQuestion, makeChoices, pickOne, pickOneManipulative, sequenceVisual, shuffle,
+  sortBinsManipulative,
 } from './_utils.js'
 import { shouldUseInteractive } from '../retrySupport.js'
 
@@ -94,7 +95,8 @@ function genPattern(skillId, options) {
 function genClassification(options) {
   const { difficulty = 1, forceInteractive = false } = options
   const group = pickOne(CLASS_GROUPS)
-  const optionsList = shuffle([...group.members.slice(0, 3), group.outsider])
+  const members = group.members.slice(0, 3)
+  const optionsList = shuffle([...members, group.outsider])
   const pickFallback = pickOneManipulative({
     variant: 'classification',
     options: optionsList,
@@ -102,8 +104,30 @@ function genClassification(options) {
     hint: `👆 点一点，哪个不是${group.category}？`,
     style: 'emoji',
   })
-  const useManipulative = shouldUseInteractive(difficulty, forceInteractive)
+  const sortManip = sortBinsManipulative(
+    optionsList,
+    [
+      { id: 'in', label: group.category, members },
+      { id: 'out', label: `不是${group.category}`, members: [group.outsider] },
+    ],
+    `先点物品，再放进「${group.category}」或「不是」`,
+  )
 
+  // 强制交互时交替使用分拣教具（skillGraph 声明的 sort）
+  if (forceInteractive && Math.random() >= 0.5) {
+    return buildQuestion({
+      skillId: 'classification',
+      prompt: `把物品分一分：哪些是${group.category}？`,
+      promptNarrative: `把${group.category}放一边，不是的放另一边`,
+      answer: 'sorted',
+      manipulative: sortManip,
+      interactiveFallback: pickFallback,
+      choice: { options: optionsList, answer: group.outsider, style: 'emoji' },
+      difficulty,
+    })
+  }
+
+  const useManipulative = shouldUseInteractive(difficulty, forceInteractive)
   return buildQuestion({
     skillId: 'classification',
     prompt: `哪个不是${group.category}？`,

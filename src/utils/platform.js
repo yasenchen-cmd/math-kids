@@ -21,3 +21,12 @@ export function isSpeechRecognitionReliable() {
   const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition
   return !!Ctor
 }
+
+/** 给 UI 用的语音识别降级文案 */
+export function getSpeechRecognitionFallbackHint() {
+  if (isSpeechRecognitionReliable()) return ''
+  if (isAppleTouchDevice()) {
+    return '此设备不能听语音，请大声说出来后点数字，或改用手指点数'
+  }
+  return '当前浏览器不能听语音，请点数字作答，或改用手指点数'
+}

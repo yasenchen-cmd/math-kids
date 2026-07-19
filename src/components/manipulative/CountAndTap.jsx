@@ -7,7 +7,7 @@
 import { useState, useCallback } from 'react'
 import useSpeechRecognition, { speechRecognitionErrorMessage } from '../../hooks/useSpeechRecognition'
 import SpeakButton from '../SpeakButton'
-import { isAppleTouchDevice } from '../../utils/platform'
+import { getSpeechRecognitionFallbackHint } from '../../utils/platform'
 
 const SAY_PROMPT = '看看图，先大声说出有几个！'
 
@@ -58,7 +58,7 @@ export default function CountAndTap({ question, onAnswer, disabled, speak, speak
   const [pickedSay, setPickedSay] = useState(null)
 
   const { listen, listening, supported: sttSupported } = useSpeechRecognition()
-  const onApple = isAppleTouchDevice()
+  const sttFallbackHint = getSpeechRecognitionFallbackHint()
 
   const goToCount = useCallback((message) => {
     setPhase('count')
@@ -139,9 +139,7 @@ export default function CountAndTap({ question, onAnswer, disabled, speak, speak
               )}
             </div>
             <div style={saySub}>
-              {onApple
-                ? 'iPad/iPhone：先点 🔊 听题目，说出来后点数字'
-                : '说出来后点数字；点 🔊 可再听一遍'}
+              {sttFallbackHint || '说出来后点数字；点 🔊 可再听一遍'}
             </div>
           </div>
         </div>
@@ -161,9 +159,9 @@ export default function CountAndTap({ question, onAnswer, disabled, speak, speak
           >
             {listening ? '🎤 正在听…请说话' : '🎤 我说完了（听一听）'}
           </button>
-        ) : onApple ? (
-          <div style={appleHint}>📱 iPhone/iPad请大声说出来，再点下面的数字</div>
-        ) : null}
+        ) : (
+          <div style={appleHint} role="status">{sttFallbackHint}</div>
+        )}
 
         <div style={sayPrompt}>点一下你说的数字：</div>
         <div style={sayGrid}>

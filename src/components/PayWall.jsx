@@ -5,14 +5,7 @@
  */
 
 import { useState } from 'react'
-
-const UNLOCK_SECRET = 'mn-unlock-v1'
-
-function isValidUnlockCode(deviceId, code) {
-  if (!code || code.length < 10) return false
-  const expected = btoa(UNLOCK_SECRET + ':' + deviceId).replace(/=/g, '')
-  return code === expected
-}
+import { isValidUnlockCode } from '../utils/unlockCode'
 
 export default function PayWall({ deviceId, onUnlock }) {
   const [code, setCode] = useState('')
@@ -41,28 +34,28 @@ export default function PayWall({ deviceId, onUnlock }) {
   }
 
   const handleSubmit = () => {
-    if (isValidUnlockCode(deviceId, code.trim())) {
+    const trimmed = code.trim()
+    if (isValidUnlockCode(deviceId, trimmed)) {
       setUnlocked(true)
       setError('')
-      setTimeout(() => onUnlock(), 800)
+      setTimeout(() => onUnlock(trimmed), 800)
     } else {
       setError('解锁码错误，请联系卖家')
     }
   }
 
   return (
-    <div style={overlay}>
+    <div style={overlay} role="dialog" aria-modal="true" aria-labelledby="paywall-title">
       <div style={card}>
-        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🔓</div>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2D3436', marginBottom: '4px' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }} aria-hidden="true">🔓</div>
+        <h2 id="paywall-title" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2D3436', marginBottom: '4px' }}>
           继续学习
         </h2>
         <p style={{ fontSize: '0.9rem', color: '#636E72', marginBottom: '20px', lineHeight: 1.5 }}>
           免费试用已结束<br />
-          解锁全部 30+ 技能，全年畅学
+          解锁全部技能，全年畅学
         </p>
 
-        {/* 价格 */}
         <div style={priceCard}>
           <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '4px' }}>
             限时优惠 · 年卡
@@ -76,12 +69,11 @@ export default function PayWall({ deviceId, onUnlock }) {
           </div>
         </div>
 
-        {/* 步骤一：微信联系 */}
         <div style={{ marginTop: '16px', padding: '14px', background: '#F5F5F5', borderRadius: '12px' }}>
           <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '8px', textAlign: 'center' }}>
             步骤一：添加微信购买
           </div>
-          <button onClick={() => copyText('arthurchan1977', setCopiedWechat)} style={copyBtn}>
+          <button type="button" onClick={() => copyText('arthurchan1977', setCopiedWechat)} style={copyBtn} aria-label="复制微信号">
             <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#07C160', flex: 1, textAlign: 'center' }}>
               arthurchan1977
             </span>
@@ -96,13 +88,12 @@ export default function PayWall({ deviceId, onUnlock }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
             <div style={deviceIdBox}>{deviceId}</div>
-            <button onClick={() => copyText(deviceId, setCopiedDevice)} style={smallCopyBtn}>
+            <button type="button" onClick={() => copyText(deviceId, setCopiedDevice)} style={smallCopyBtn} aria-label="复制设备 ID">
               {copiedDevice ? '✓' : '复制'}
             </button>
           </div>
         </div>
 
-        {/* 步骤二：解锁码输入 */}
         {!unlocked && (
           <div style={{ marginTop: '16px', padding: '14px', background: '#F0FFF4', borderRadius: '12px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.85rem', color: '#636E72', marginBottom: '10px' }}>
@@ -113,14 +104,16 @@ export default function PayWall({ deviceId, onUnlock }) {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="输入卖家给你的解锁码"
+              aria-label="解锁码"
               style={inputStyle}
             />
             {error && (
-              <div style={{ color: '#FF6B6B', fontSize: '0.8rem', marginTop: '6px' }}>
+              <div role="alert" style={{ color: '#FF6B6B', fontSize: '0.8rem', marginTop: '6px' }}>
                 {error}
               </div>
             )}
             <button
+              type="button"
               style={{
                 ...unlockBtn,
                 opacity: code.length < 5 ? 0.5 : 1,
@@ -133,10 +126,9 @@ export default function PayWall({ deviceId, onUnlock }) {
           </div>
         )}
 
-        {/* 解锁成功 */}
         {unlocked && (
-          <div style={{ marginTop: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🎉</div>
+          <div style={{ marginTop: '16px', textAlign: 'center' }} role="status">
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }} aria-hidden="true">🎉</div>
             <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2E7D32' }}>
               解锁成功，开始学习吧！
             </p>

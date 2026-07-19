@@ -119,18 +119,23 @@ export default function App() {
         />
       ) : (
         <GameScreen
+          key={currentSkill}
           skillId={currentSkill}
           errorProfile={errorProfile}
           setErrorProfile={setErrorProfile}
           onBack={handleBack}
           onMastered={handleMastered}
+          onSelectSkill={handleSelectSkill}
         />
       )}
 
       {/* 付费墙 */}
       {showPayWall && (
-        <PayWall deviceId={deviceId}
-          onUnlock={() => { doUnlock(); handlePaySuccess() }}
+        <PayWall
+          deviceId={deviceId}
+          onUnlock={(code) => {
+            if (doUnlock(code)) handlePaySuccess()
+          }}
         />
       )}
 

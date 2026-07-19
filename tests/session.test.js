@@ -47,10 +47,10 @@ describe('addition drag-first', () => {
     expect(q.visual?.type).toBe('emoji_grid')
   })
 
-  it('make_ten uses drag only at low difficulty', () => {
+  it('make_ten uses drag_to_target only at low difficulty', () => {
     const low = genAddition('make_ten', { difficulty: 1 })
     const high = genAddition('make_ten', { difficulty: 4 })
-    expect(low.manipulative?.mode).toBe('drag_combine')
+    expect(low.manipulative?.mode).toBe('drag_to_target')
     expect(high.manipulative).toBeNull()
   })
 })

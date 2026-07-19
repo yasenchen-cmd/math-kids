@@ -218,3 +218,19 @@ button:active {
   .btn { padding: 10px 20px; font-size: 1rem; }
 }
 
+/* 减少动效（前庭敏感 / 系统设置） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  button:active {
+    transform: none;
+  }
+}
+

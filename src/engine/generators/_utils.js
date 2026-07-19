@@ -1,5 +1,16 @@
 /**
  * 题目构建辅助 — 统一结构、视觉字段、干扰项质量
+ *
+ * @typedef {Object} Question
+ * @property {string} skillId
+ * @property {string} prompt
+ * @property {string} promptNarrative
+ * @property {string|number} answer
+ * @property {object|null} visual
+ * @property {{ mode: string }|null} manipulative
+ * @property {{ mode: string }|null} interactiveFallback
+ * @property {{ options: Array, answer: *, style?: string }} choice
+ * @property {number} difficulty
  */
 
 export function shuffle(arr) {
@@ -136,6 +147,28 @@ export function pickOneManipulative({
     sequence,
     hint,
     style,
+  }
+}
+
+/** 数字排序教具 */
+export function sortOrderManipulative(items, targetOrder, hint = '按从小到大点一点') {
+  return {
+    mode: 'sort',
+    variant: 'order',
+    items: shuffle([...items]),
+    targetOrder: [...targetOrder],
+    hint,
+  }
+}
+
+/** 二分拣教具（分类） */
+export function sortBinsManipulative(items, bins, hint = '点一下，再选放到哪个筐') {
+  return {
+    mode: 'sort',
+    variant: 'bins',
+    items: shuffle([...items]),
+    bins,
+    hint,
   }
 }
 
