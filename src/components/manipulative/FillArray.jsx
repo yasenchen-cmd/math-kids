@@ -43,12 +43,12 @@ export default function FillArray({ question, onAnswer, disabled }) {
   if (manipulative?.mode !== 'fill_array') return null
 
   return (
-    <div style={container}>
-      <div style={sceneLabel}>
+    <div style={container} role="region" aria-label="填数组">
+      <div style={sceneLabel} id="fill-array-hint">
         👆 每行填 {perGroup} 个，一共 {rows} 行
       </div>
 
-      <div style={gridWrap}>
+      <div style={gridWrap} role="group" aria-labelledby="fill-array-hint">
         {grid.map((row, ri) => (
           <div key={ri} style={rowWrap}>
             <span style={rowLabel}>第 {ri + 1} 行</span>
@@ -64,9 +64,11 @@ export default function FillArray({ question, onAnswer, disabled }) {
                     transform: filled ? 'scale(1.05)' : 'scale(1)',
                   }}
                   disabled={disabled || showResult}
+                  aria-pressed={filled}
+                  aria-label={`第 ${ri + 1} 行第 ${ci + 1} 格${filled ? '，已填' : ''}`}
                   onClick={() => handleToggle(ri, ci)}
                 >
-                  <span style={{ fontSize: filled ? '1.6rem' : '1.2rem', opacity: filled ? 1 : 0.25 }}>
+                  <span style={{ fontSize: filled ? '1.6rem' : '1.2rem', opacity: filled ? 1 : 0.25 }} aria-hidden="true">
                     {filled ? emoji : '＋'}
                   </span>
                 </button>
@@ -76,7 +78,7 @@ export default function FillArray({ question, onAnswer, disabled }) {
         ))}
       </div>
 
-      <div style={counter}>
+      <div style={counter} role="status" aria-live="polite">
         已填 <strong style={{ color: '#4F8CF6', fontSize: '1.4rem' }}>{totalFilled}</strong> / {answer} 个
       </div>
 
@@ -96,11 +98,15 @@ export default function FillArray({ question, onAnswer, disabled }) {
       )}
 
       {showResult && (
-        <div style={{
-          ...resultBar,
-          backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
-          borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
-        }}>
+        <div
+          role="status"
+          aria-live="assertive"
+          style={{
+            ...resultBar,
+            backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
+            borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
+          }}
+        >
           {isCorrect
             ? `✓ 对啦！${rows} × ${perGroup} = ${answer}`
             : `✗ 应该是 ${answer} 个（${rows} × ${perGroup}）`}

@@ -64,12 +64,12 @@ export default function DragShare({ question, onAnswer, disabled }) {
   if (manipulative?.mode !== 'drag_share') return null
 
   return (
-    <div style={container}>
-      <div style={sceneLabel}>
+    <div style={container} role="region" aria-label="平分物品">
+      <div style={sceneLabel} id="drag-share-hint">
         👆 把 {totalItems.length} 个物品分给 {groups} 位小朋友，每人一样多
       </div>
 
-      <div style={poolZone}>
+      <div style={poolZone} role="group" aria-label="待分配物品">
         <div style={zoneTitle}>待分配</div>
         <div style={itemsRow}>
           {pool.map(({ emoji, idx }) => (
@@ -83,22 +83,24 @@ export default function DragShare({ question, onAnswer, disabled }) {
                 transform: selected === idx ? 'scale(1.08)' : 'scale(1)',
               }}
               disabled={disabled || showResult}
+              aria-pressed={selected === idx}
+              aria-label={`选择第 ${idx + 1} 个物品`}
               onClick={() => handleSelectPool(idx)}
             >
-              <span style={{ fontSize: '1.8rem' }}>{emoji}</span>
+              <span style={{ fontSize: '1.8rem' }} aria-hidden="true">{emoji}</span>
             </button>
           ))}
           {pool.length === 0 && !showResult && (
-            <span style={emptyHint}>全部分完啦 ✓</span>
+            <span style={emptyHint} role="status">全部分完啦 ✓</span>
           )}
         </div>
       </div>
 
       <div style={bucketsGrid}>
         {buckets.map((bucket, bi) => (
-          <div key={bi} style={bucketZone}>
+          <div key={bi} style={bucketZone} role="group" aria-label={`小朋友 ${bi + 1}`}>
             <div style={bucketTitle}>
-              {PERSON_EMOJI[bi % PERSON_EMOJI.length]} 小朋友{bi + 1}
+              <span aria-hidden="true">{PERSON_EMOJI[bi % PERSON_EMOJI.length]}</span> 小朋友{bi + 1}
             </div>
             <button
               type="button"
@@ -108,6 +110,7 @@ export default function DragShare({ question, onAnswer, disabled }) {
                 background: selected !== null ? '#F1F8E9' : '#FAFAFA',
               }}
               disabled={disabled || showResult || selected === null}
+              aria-label={`放到小朋友 ${bi + 1}`}
               onClick={() => handleAssignBucket(bi)}
             >
               {selected !== null ? '放这里' : `${bucket.length} 个`}
@@ -119,9 +122,10 @@ export default function DragShare({ question, onAnswer, disabled }) {
                   type="button"
                   style={{ ...itemBtn, background: '#E8F5E9', borderColor: '#6BCB77' }}
                   disabled={disabled || showResult}
+                  aria-label={`从小朋友 ${bi + 1} 拿回`}
                   onClick={() => handleUnassign(bi, itemIdx)}
                 >
-                  <span style={{ fontSize: '1.5rem' }}>{totalItems[itemIdx]}</span>
+                  <span style={{ fontSize: '1.5rem' }} aria-hidden="true">{totalItems[itemIdx]}</span>
                 </button>
               ))}
             </div>
@@ -145,11 +149,15 @@ export default function DragShare({ question, onAnswer, disabled }) {
       )}
 
       {showResult && (
-        <div style={{
-          ...resultBar,
-          backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
-          borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
-        }}>
+        <div
+          role="status"
+          aria-live="assertive"
+          style={{
+            ...resultBar,
+            backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
+            borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
+          }}
+        >
           {isCorrect
             ? `✓ 对啦！每人 ${answer} 个`
             : `✗ 不对哦，应该每人 ${answer} 个`}

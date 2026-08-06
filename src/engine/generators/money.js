@@ -2,7 +2,15 @@
  * 认识钱币
  */
 
-import { buildQuestion, makeChoices, pickOne, randInt } from './_utils.js'
+import {
+  buildQuestion,
+  makeChoices,
+  pickOne,
+  randInt,
+  pickOneManipulative,
+  countManipulative,
+  repeatEmoji,
+} from './_utils.js'
 
 const SCENARIOS = [
   {
@@ -17,6 +25,8 @@ const SCENARIOS = [
         answer,
         visual: { type: 'coins', items: coins },
         distractors: [answer - 5, answer + 5, fives * 10].filter(n => n > 0),
+        coinCount: fives,
+        unitValue: 5,
       }
     },
   },
@@ -47,15 +57,35 @@ const SCENARIOS = [
         answer,
         visual: { type: 'coins', items: Array(yuan).fill('💴1元') },
         distractors: [yuan - 1, yuan + 1, yuan * 2].filter(n => n > 0),
+        coinCount: yuan,
+        unitValue: 1,
+        countIsAnswer: true,
       }
     },
   },
 ]
 
 export function generateQuestion(skillId, options = {}) {
-  const { difficulty = 1 } = options
+  const { difficulty = 1, forceInteractive = false, distractorCount } = options
   const scenario = pickOne(SCENARIOS.slice(0, Math.min(1 + difficulty, SCENARIOS.length)))
-  const { prompt, promptNarrative, answer, visual, distractors } = scenario.build()
+  const built = scenario.build()
+  const { prompt, promptNarrative, answer, visual, distractors } = built
+  const choiceCount = distractorCount != null ? distractorCount + 1 : 4
+  const choice = makeChoices(answer, distractors, choiceCount)
+  const wantInteractive = forceInteractive || difficulty <= 2
+
+  let manipulative = null
+  if (wantInteractive && built.countIsAnswer && built.coinCount) {
+    manipulative = countManipulative(repeatEmoji('💴', built.coinCount), built.coinCount, answer)
+  } else if (wantInteractive) {
+    manipulative = pickOneManipulative({
+      variant: 'money',
+      options: choice.options,
+      answer,
+      hint: '👆 数一数钱币，点一点答案',
+      style: 'text',
+    })
+  }
 
   return buildQuestion({
     skillId,
@@ -63,7 +93,15 @@ export function generateQuestion(skillId, options = {}) {
     promptNarrative,
     answer,
     visual,
-    choice: makeChoices(answer, distractors),
+    manipulative,
+    interactiveFallback: pickOneManipulative({
+      variant: 'money',
+      options: choice.options,
+      answer,
+      hint: '👆 数一数钱币，点一点答案',
+      style: 'text',
+    }),
+    choice,
     difficulty,
   })
 }

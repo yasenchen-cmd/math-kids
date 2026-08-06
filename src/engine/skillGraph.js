@@ -24,7 +24,7 @@ const skillGraph = {
     dependencies: [],
     difficultyRange: { min: 1, max: 5 },
     visualThemes: ['fruits', 'animals', 'blocks', 'stars', 'candies'],
-    interactionModes: ['count', 'select'],
+    interactionModes: ['count', 'pick_one'],
     generator: 'counting',
   },
   counting_1_10: {
@@ -35,7 +35,7 @@ const skillGraph = {
     dependencies: ['counting_1_5'],
     difficultyRange: { min: 1, max: 10 },
     visualThemes: ['fruits', 'animals', 'blocks', 'stars', 'candies'],
-    interactionModes: ['count', 'select'],
+    interactionModes: ['count', 'pick_one'],
     generator: 'counting',
   },
   number_recognition: {
@@ -46,7 +46,7 @@ const skillGraph = {
     dependencies: ['counting_1_5'],
     difficultyRange: { min: 1, max: 20 },
     visualThemes: ['cards', 'dice', 'fingers'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'number_recognition',
   },
   counting_1_20: {
@@ -57,7 +57,7 @@ const skillGraph = {
     dependencies: ['counting_1_10', 'number_recognition'],
     difficultyRange: { min: 1, max: 20 },
     visualThemes: ['fruits', 'animals', 'blocks'],
-    interactionModes: ['count', 'select'],
+    interactionModes: ['count', 'pick_one'],
     generator: 'counting',
   },
   quantity_comparison: {
@@ -68,7 +68,7 @@ const skillGraph = {
     dependencies: ['counting_1_10'],
     difficultyRange: { min: 1, max: 10 },
     visualThemes: ['fruits', 'animals', 'blocks'],
-    interactionModes: ['compare', 'select'],
+    interactionModes: ['compare_count', 'pick_one'],
     generator: 'comparison',
   },
   number_sequence: {
@@ -79,7 +79,7 @@ const skillGraph = {
     dependencies: ['counting_1_10'],
     difficultyRange: { min: 1, max: 20 },
     visualThemes: ['cards', 'train'],
-    interactionModes: ['sort', 'select'],
+    interactionModes: ['sort', 'pick_one'],
     generator: 'sequence',
   },
   counting_1_100: {
@@ -90,7 +90,7 @@ const skillGraph = {
     dependencies: ['counting_1_20'],
     difficultyRange: { min: 1, max: 100 },
     visualThemes: ['grid', 'stairs'],
-    interactionModes: ['count', 'select'],
+    interactionModes: ['count', 'pick_one'],
     generator: 'counting',
   },
   place_value: {
@@ -101,7 +101,7 @@ const skillGraph = {
     dependencies: ['counting_1_100'],
     difficultyRange: { min: 10, max: 99 },
     visualThemes: ['blocks_10', 'abacus'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'place_value',
   },
 
@@ -114,7 +114,7 @@ const skillGraph = {
     dependencies: ['counting_1_5'],
     difficultyRange: { min: 1, max: 3 },
     visualThemes: ['shapes', 'colors', 'fruits'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'pattern',
   },
   classification: {
@@ -125,7 +125,7 @@ const skillGraph = {
     dependencies: ['counting_1_5'],
     difficultyRange: { min: 1, max: 3 },
     visualThemes: ['shapes', 'colors', 'fruits'],
-    interactionModes: ['select', 'sort'],
+    interactionModes: ['pick_one', 'sort'],
     generator: 'classification',
   },
 
@@ -149,7 +149,7 @@ const skillGraph = {
     dependencies: ['addition_meaning'],
     difficultyRange: { min: 1, max: 5 },
     visualThemes: ['fruits', 'animals', 'candies', 'blocks', 'toys'],
-    interactionModes: ['drag_combine', 'count', 'select'],
+    interactionModes: ['drag_combine', 'count', 'pick_one'],
     generator: 'addition',
   },
   addition_within_10: {
@@ -160,7 +160,7 @@ const skillGraph = {
     dependencies: ['addition_within_5'],
     difficultyRange: { min: 1, max: 10 },
     visualThemes: ['fruits', 'animals', 'candies', 'blocks', 'toys'],
-    interactionModes: ['drag_combine', 'count', 'select'],
+    interactionModes: ['drag_combine', 'count', 'pick_one'],
     generator: 'addition',
   },
   make_ten: {
@@ -171,7 +171,7 @@ const skillGraph = {
     dependencies: ['addition_within_10'],
     difficultyRange: { min: 1, max: 10 },
     visualThemes: ['ten_frame', 'eggs', 'fingers'],
-    interactionModes: ['drag_to_target', 'select'],
+    interactionModes: ['drag_to_target', 'pick_one'],
     generator: 'make_ten',
   },
   addition_within_20: {
@@ -182,7 +182,7 @@ const skillGraph = {
     dependencies: ['make_ten', 'counting_1_20'],
     difficultyRange: { min: 1, max: 20 },
     visualThemes: ['fruits', 'blocks', 'candies'],
-    interactionModes: ['drag_combine', 'select'],
+    interactionModes: ['drag_combine', 'pick_one'],
     generator: 'addition',
   },
 
@@ -206,7 +206,7 @@ const skillGraph = {
     dependencies: ['subtraction_meaning'],
     difficultyRange: { min: 1, max: 5 },
     visualThemes: ['fruits', 'animals', 'candies'],
-    interactionModes: ['drag_split', 'select'],
+    interactionModes: ['drag_split', 'pick_one'],
     generator: 'subtraction',
   },
   subtraction_within_10: {
@@ -217,7 +217,7 @@ const skillGraph = {
     dependencies: ['subtraction_within_5'],
     difficultyRange: { min: 1, max: 10 },
     visualThemes: ['fruits', 'animals', 'candies'],
-    interactionModes: ['drag_split', 'select'],
+    interactionModes: ['drag_split', 'pick_one'],
     generator: 'subtraction',
   },
 
@@ -230,7 +230,7 @@ const skillGraph = {
     dependencies: [],
     difficultyRange: { min: 1, max: 4 },
     visualThemes: ['shapes', 'everyday'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'shape_recognition',
   },
   shape_composition: {
@@ -241,7 +241,7 @@ const skillGraph = {
     dependencies: ['shape_recognition'],
     difficultyRange: { min: 2, max: 6 },
     visualThemes: ['tangram', 'puzzle'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'shape_composition',
   },
   symmetry: {
@@ -252,7 +252,7 @@ const skillGraph = {
     dependencies: ['shape_recognition'],
     difficultyRange: { min: 1, max: 3 },
     visualThemes: ['shapes', 'nature', 'letters'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'symmetry',
   },
   spatial_position: {
@@ -261,8 +261,9 @@ const skillGraph = {
     area: 'geometry',
     order: 4,
     dependencies: [],
+    difficultyRange: { min: 1, max: 3 },
     visualThemes: ['scene', 'animals'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'spatial',
   },
 
@@ -275,7 +276,7 @@ const skillGraph = {
     dependencies: ['addition_within_20', 'counting_1_20'],
     difficultyRange: { min: 1, max: 5 },
     visualThemes: ['array', 'groups', 'stairs'],
-    interactionModes: ['fill_array', 'count', 'select'],
+    interactionModes: ['fill_array', 'count', 'pick_one'],
     generator: 'multiplication',
   },
   multiplication_2_5: {
@@ -286,7 +287,7 @@ const skillGraph = {
     dependencies: ['multiplication_meaning'],
     difficultyRange: { min: 1, max: 9 },
     visualThemes: ['array', 'groups', 'stairs'],
-    interactionModes: ['fill_array', 'select'],
+    interactionModes: ['fill_array', 'pick_one'],
     generator: 'multiplication',
   },
   multiplication_3_4: {
@@ -297,7 +298,7 @@ const skillGraph = {
     dependencies: ['multiplication_2_5'],
     difficultyRange: { min: 1, max: 9 },
     visualThemes: ['array', 'groups'],
-    interactionModes: ['fill_array', 'select'],
+    interactionModes: ['fill_array', 'pick_one'],
     generator: 'multiplication',
   },
 
@@ -308,8 +309,9 @@ const skillGraph = {
     area: 'advanced',
     order: 1,
     dependencies: ['counting_1_10'],
+    difficultyRange: { min: 1, max: 3 },
     visualThemes: ['clock'],
-    interactionModes: ['select'],
+    interactionModes: ['pick_one'],
     generator: 'time',
   },
   money_basic: {
@@ -318,8 +320,9 @@ const skillGraph = {
     area: 'advanced',
     order: 2,
     dependencies: ['addition_within_20'],
+    difficultyRange: { min: 1, max: 4 },
     visualThemes: ['coins', 'bills'],
-    interactionModes: ['select', 'count'],
+    interactionModes: ['pick_one', 'count'],
     generator: 'money',
   },
   fractions_intro: {
@@ -328,8 +331,9 @@ const skillGraph = {
     area: 'advanced',
     order: 3,
     dependencies: ['addition_within_10'],
+    difficultyRange: { min: 1, max: 3 },
     visualThemes: ['pizza', 'cake', 'chocolate'],
-    interactionModes: ['select'],
+    interactionModes: ['fraction_parts', 'pick_one'],
     generator: 'fractions',
   },
   division_basic: {
@@ -338,8 +342,9 @@ const skillGraph = {
     area: 'advanced',
     order: 4,
     dependencies: ['multiplication_meaning'],
+    difficultyRange: { min: 1, max: 5 },
     visualThemes: ['sharing', 'groups'],
-    interactionModes: ['drag_split', 'select'],
+    interactionModes: ['drag_share', 'pick_one'],
     generator: 'division',
   },
 }

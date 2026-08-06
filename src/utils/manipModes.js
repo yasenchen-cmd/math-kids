@@ -9,6 +9,7 @@ export const MANIPULATIVE_MODES = [
   'compare_count',
   'pick_one',
   'sort',
+  'fraction_parts',
 ]
 
 export function hidesQuestionVisual(mode) {

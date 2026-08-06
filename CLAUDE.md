@@ -30,7 +30,7 @@ src/
 │   ├── skillGraph.js       # 技能树 + recommendNext
 │   └── questionGenerator.js
 ├── components/
-│   ├── manipulative/       # 操作教具（含 sort / drag_to_target）
+│   ├── manipulative/       # 操作教具（含 sort / drag_to_target / fraction_parts）
 │   ├── ManipulativeRouter.jsx
 │   └── GameScreen.jsx
 ├── hooks/                  # useSpeech, useSpeechRecognition, usePayment…

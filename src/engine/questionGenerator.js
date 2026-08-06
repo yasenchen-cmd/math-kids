@@ -60,8 +60,24 @@ export function getImplementedSkillIds() {
 
 export function generateQuestion(skillId, options = {}) {
   const fn = ROUTER[skillId]
-  if (fn) return fn(skillId, options)
-  return genFallback(skillId, options)
+  const q = fn ? fn(skillId, options) : genFallback(skillId, options)
+  return applyDistractorCount(q, options.distractorCount)
+}
+
+/** 按自适应干扰项数量裁剪选项（保留正确答案） */
+function applyDistractorCount(q, distractorCount) {
+  if (distractorCount == null || !q?.choice?.options) return q
+  const want = Math.max(2, distractorCount + 1)
+  if (q.choice.options.length <= want) return q
+  const answer = q.choice.answer
+  const others = q.choice.options.filter(o => o !== answer).slice(0, want - 1)
+  return {
+    ...q,
+    choice: {
+      ...q.choice,
+      options: shuffle([answer, ...others]),
+    },
+  }
 }
 
 /** 一轮答题内避免重复题目 */

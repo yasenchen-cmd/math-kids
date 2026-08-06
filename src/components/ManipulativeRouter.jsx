@@ -11,6 +11,7 @@ import CountAndTap from './manipulative/CountAndTap'
 import CompareCount from './manipulative/CompareCount'
 import PickOne from './manipulative/PickOne'
 import SortOrder from './manipulative/SortOrder'
+import FractionParts from './manipulative/FractionParts'
 import ChoiceGrid from './ChoiceGrid'
 
 export default function ManipulativeRouter({
@@ -45,6 +46,8 @@ export default function ManipulativeRouter({
       return <PickOne {...common} />
     case 'sort':
       return <SortOrder {...common} />
+    case 'fraction_parts':
+      return <FractionParts {...common} />
     default:
       return (
         <ChoiceGrid

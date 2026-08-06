@@ -27,7 +27,7 @@ function masteredIds(skillScores, errorProfile) {
     .map(s => s.id)
 }
 
-export default function GameScreen({ skillId, errorProfile, setErrorProfile, onBack, onMastered, onSelectSkill }) {
+export default function GameScreen({ skillId, errorProfile, setErrorProfile, onBack, onMastered, onSelectSkill, onConsumeTrial }) {
   const skill = getSkill(skillId)
 
   const [secretActive] = useState(() => shouldShowSecretMascot())
@@ -54,14 +54,18 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
   const [questionAttempt, setQuestionAttempt] = useState(0)
   const [retryHint, setRetryHint] = useState(null)
   const [retryUpgraded, setRetryUpgraded] = useState(false)
+  const [autoRead, setAutoRead] = useState(true)
+  const [showVisual, setShowVisual] = useState(true)
 
   const skillScores = errorProfile?.skillScores || {}
   const idleTimerRef = useRef(null)
   const sessionSeenRef = useRef(new Set())
   const recoveryBoostRef = useRef({ difficultyDrop: 0, roundsLeft: 0 })
+  const difficultyUpRef = useRef(0)
+  const forceInterventionRef = useRef(false)
   const retriedRef = useRef(false)
 
-  const hideVisual = hidesQuestionVisual(question?.manipulative?.mode)
+  const hideVisual = hidesQuestionVisual(question?.manipulative?.mode) || !showVisual
   const visualFocus = useMemo(() => getVisualFocus(retryHint), [retryHint])
   const attemptKey = `${qIndex}-${questionAttempt}`
 
@@ -105,8 +109,17 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
       case 'easy_win':
         if (d.guarantee) setEasyWinMode(true)
         break
-      case 'simplify':
+      case 'simplify': {
+        const drop = Math.max(1, d.level || 1)
+        recoveryBoostRef.current = {
+          difficultyDrop: Math.min(3, recoveryBoostRef.current.difficultyDrop + drop),
+          roundsLeft: Math.max(2, recoveryBoostRef.current.roundsLeft || 0),
+        }
+        difficultyUpRef.current = 0
+        setMascotSpeech('我们降低一点难度，慢慢来～')
+        setMascotMood('encourage')
         break
+      }
       case 'surprise':
         setMascotMood('celebrate')
         setMascotSpeech('✨ 嘿！✨')
@@ -121,7 +134,16 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
         setMascotMood('thinking')
         break
       case 'intervention_force':
+        forceInterventionRef.current = true
+        setEasyWinMode(true)
         break
+      case 'difficulty_up': {
+        const bump = Math.max(1, d.level || 1)
+        difficultyUpRef.current = Math.min(3, difficultyUpRef.current + bump)
+        setMascotSpeech('你已经很厉害了！挑战一下？')
+        setMascotMood('celebrate')
+        break
+      }
       default:
         break
     }
@@ -142,14 +164,24 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
   const nextQuestion = useCallback(() => {
     const { options: interventionOpts, feedback: interventionFeedback } = applyInterventions(errorProfile)
 
-    if (easyWinMode) {
-      interventionOpts.difficultyBoost = -2
+    if (easyWinMode || forceInterventionRef.current) {
+      interventionOpts.difficultyBoost = (interventionOpts.difficultyBoost || 0) - 2
       interventionOpts.maxItems = 3
       interventionOpts.forceVisual = true
       interventionOpts.stepByStep = true
+      interventionOpts.forceInteractive = true
+      forceInterventionRef.current = false
     }
 
     const config = getAdaptiveConfig(skillId, skillScores, errorProfile)
+    const shouldAutoRead = interventionOpts.autoRead != null
+      ? !!interventionOpts.autoRead
+      : config.autoRead
+    setAutoRead(shouldAutoRead)
+    setShowVisual(
+      !!interventionOpts.forceVisual ||
+      (interventionOpts.showVisual != null ? !!interventionOpts.showVisual : config.showVisual)
+    )
     const theme = THEME_CYCLE[visualTheme % THEME_CYCLE.length]
     setVisualTheme(v => v + 1)
 
@@ -164,11 +196,19 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
       interventionOpts.stepByStep = true
     }
 
+    if (difficultyUpRef.current > 0 && recovery.roundsLeft <= 0 && !easyWinMode) {
+      effectiveDifficulty = effectiveDifficulty + difficultyUpRef.current
+    }
+
     const genOptions = {
       difficulty: effectiveDifficulty,
       visualTheme: theme,
       previousErrors: errorProfile,
       forceInteractive: interventionOpts.forceInteractive || recovery.roundsLeft > 0 || config.preferInteractive,
+      distractorCount: config.distractors,
+      helpLevel: config.helpLevel,
+      showVisual: config.showVisual,
+      autoRead: config.autoRead,
       ...interventionOpts,
     }
 
@@ -190,22 +230,25 @@ export default function GameScreen({ skillId, errorProfile, setErrorProfile, onB
   const startGame = useCallback(() => {
     sessionSeenRef.current = new Set()
     recoveryBoostRef.current = { difficultyDrop: 0, roundsLeft: 0 }
+    difficultyUpRef.current = 0
+    forceInterventionRef.current = false
     setPhase('play')
     setQIndex(0)
     setScore(0)
     setQuestionAttempt(0)
     setMascotMood('idle')
     director.onInput()
+    if (typeof onConsumeTrial === 'function') onConsumeTrial()
     nextQuestion()
-  }, [nextQuestion])
+  }, [nextQuestion, onConsumeTrial, director])
 
   useEffect(() => {
-    if (phase === 'play' && question) {
+    if (phase === 'play' && question && autoRead) {
       const text = question.promptNarrative || question.prompt
       const timer = setTimeout(() => speak(text, { rate: 0.85 }), 400)
       return () => clearTimeout(timer)
     }
-  }, [qIndex, phase, question])
+  }, [qIndex, phase, question, autoRead])
 
   const resetIdleTimer = useCallback(() => {
     director.onInput()

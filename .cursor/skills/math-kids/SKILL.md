@@ -22,7 +22,7 @@ description: >-
 
 `buildQuestion` 产出字段：`skillId`, `prompt`, `promptNarrative`, `answer`, `visual`, `manipulative`, `interactiveFallback`, `choice`, `difficulty`。
 
-已实现 mode：`drag_combine`, `drag_split`, `drag_share`, `drag_to_target`, `fill_array`, `count`, `compare_count`, `pick_one`, `sort`。
+已实现 mode：`drag_combine`, `drag_split`, `drag_share`, `drag_to_target`, `fill_array`, `count`, `compare_count`, `pick_one`, `sort`, `fraction_parts`。
 
 ## 推荐下一关
 

@@ -99,6 +99,18 @@ export default function DragCombine({ question, onAnswer, disabled }) {
     setInMergeZone(false)
   }, [draggingIdx, inMergeZone, mergedCount, totalItems, answer, onAnswer])
 
+  const handleMergeNext = useCallback(() => {
+    if (disabled || phase === 'result' || mergedCount >= totalItems) return
+    const newCount = mergedCount + 1
+    setMergedCount(newCount)
+    if (newCount === totalItems) {
+      const correct = newCount === answer
+      setIsCorrect(correct)
+      setPhase('result')
+      if (onAnswer) onAnswer(correct ? answer : newCount)
+    }
+  }, [disabled, phase, mergedCount, totalItems, answer, onAnswer])
+
   // 计算已拖入的物品（前 mergedCount 个在合并区）
   const merged = itemEmojis.slice(0, mergedCount)
   const remaining = itemEmojis.slice(mergedCount)
@@ -111,18 +123,21 @@ export default function DragCombine({ question, onAnswer, disabled }) {
   } : null
 
   return (
-    <div ref={containerRef} style={container}
+    <div ref={containerRef} style={container} role="region" aria-label="拖拽合并"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={() => { setDraggingIdx(null); setInMergeZone(false) }}
     >
-      <div style={sceneLabel}>
-        🧺 用手指把物品拖到篮子里吧！
+      <div style={sceneLabel} id="drag-combine-hint">
+        🧺 用手指把物品拖到篮子里吧！也可按 Enter 放入
       </div>
 
       <div style={playArea}>
         {/* 左侧：物品区 */}
-        <div style={{
+        <div
+          role="group"
+          aria-labelledby="drag-combine-hint"
+          style={{
           ...sourceArea,
           opacity: phase === 'result' ? 0.5 : 1,
           pointerEvents: phase === 'result' ? 'none' : 'auto',
@@ -134,7 +149,16 @@ export default function DragCombine({ question, onAnswer, disabled }) {
               <div
                 key={globalIdx}
                 ref={el => itemRefs.current[globalIdx] = el}
+                role="button"
+                tabIndex={disabled || phase === 'result' ? -1 : 0}
+                aria-label={`放入篮子：${emoji}`}
                 onPointerDown={(e) => handlePointerDown(globalIdx, e)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleMergeNext()
+                  }
+                }}
                 style={{
                   ...itemBox,
                   background: remainingColors[idx] + '22',
@@ -145,18 +169,21 @@ export default function DragCombine({ question, onAnswer, disabled }) {
                   transform: isDragging ? 'scale(0.9)' : 'scale(1)',
                 }}
               >
-                <span style={{fontSize:'1.8rem', pointerEvents:'none'}}>{emoji}</span>
+                <span style={{fontSize:'1.8rem', pointerEvents:'none'}} aria-hidden="true">{emoji}</span>
               </div>
             )
           })}
         </div>
 
         {/* 箭头 */}
-        {remaining.length > 0 && <div style={arrowStyle}>→</div>}
+        {remaining.length > 0 && <div style={arrowStyle} aria-hidden="true">→</div>}
 
         {/* 右侧：合并区（篮子） */}
         <div
           ref={mergeRef}
+          role="status"
+          aria-live="polite"
+          aria-label={`篮子里 ${mergedCount} 个`}
           style={{
             ...targetArea,
             borderColor: phase === 'result'
@@ -177,7 +204,7 @@ export default function DragCombine({ question, onAnswer, disabled }) {
                 ...mergedItem,
                 animation: 'popIn 0.2s ease-out',
               }}>
-                <span style={{fontSize:'1.8rem'}}>{emoji}</span>
+                <span style={{fontSize:'1.8rem'}} aria-hidden="true">{emoji}</span>
               </div>
             ))}
           </div>
@@ -212,7 +239,10 @@ export default function DragCombine({ question, onAnswer, disabled }) {
 
       {/* 结果反馈 */}
       {phase === 'result' && (
-        <div style={{
+        <div
+          role="status"
+          aria-live="assertive"
+          style={{
           ...resultBar,
           backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
           borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',

@@ -37,13 +37,13 @@ export default function DragSplit({ question, onAnswer, disabled }) {
   if (manipulative?.mode !== 'drag_split') return null
 
   return (
-    <div style={container}>
-      <div style={sceneLabel}>
+    <div style={container} role="region" aria-label="减法拿走">
+      <div style={sceneLabel} id="drag-split-hint">
         👆 点 {takeCount} 个物品到「拿走了」，看看还剩几个
       </div>
 
       <div style={playArea}>
-        <div style={zone}>
+        <div style={zone} role="group" aria-label="剩下的物品">
           <div style={zoneTitle}>剩下</div>
           <div style={itemsGrid}>
             {totalItems.map((emoji, idx) => {
@@ -58,19 +58,20 @@ export default function DragSplit({ question, onAnswer, disabled }) {
                     opacity: !canTakeMore ? 0.45 : 1,
                   }}
                   disabled={disabled || showResult || !canTakeMore}
+                  aria-label={`拿走第 ${idx + 1} 个`}
                   onClick={() => handleTap(idx)}
                 >
-                  <span style={{ fontSize: totalItems.length > 8 ? '1.6rem' : '2rem' }}>{emoji}</span>
+                  <span style={{ fontSize: totalItems.length > 8 ? '1.6rem' : '2rem' }} aria-hidden="true">{emoji}</span>
                 </button>
               )
             })}
           </div>
-          <div style={countBadge}>还剩 <strong>{remaining}</strong> 个</div>
+          <div style={countBadge} role="status" aria-live="polite">还剩 <strong>{remaining}</strong> 个</div>
         </div>
 
-        <div style={arrow}>→</div>
+        <div style={arrow} aria-hidden="true">→</div>
 
-        <div style={{ ...zone, background: '#FFF8F0', borderColor: '#FFB347' }}>
+        <div style={{ ...zone, background: '#FFF8F0', borderColor: '#FFB347' }} role="group" aria-label="拿走了的物品">
           <div style={zoneTitle}>拿走了</div>
           <div style={itemsGrid}>
             {taken.map((idx) => (
@@ -79,13 +80,14 @@ export default function DragSplit({ question, onAnswer, disabled }) {
                 type="button"
                 style={{ ...itemBtn, background: '#FFEBEE', borderColor: '#FF6B6B', cursor: disabled || showResult ? 'default' : 'pointer' }}
                 disabled={disabled || showResult}
+                aria-label={`放回第 ${idx + 1} 个`}
                 onClick={() => handleUntake(idx)}
               >
-                <span style={{ fontSize: '2rem' }}>{totalItems[idx]}</span>
+                <span style={{ fontSize: '2rem' }} aria-hidden="true">{totalItems[idx]}</span>
               </button>
             ))}
           </div>
-          <div style={countBadge}>{taken.length} / {takeCount} 个</div>
+          <div style={countBadge} role="status" aria-live="polite">{taken.length} / {takeCount} 个</div>
         </div>
       </div>
 
@@ -105,11 +107,15 @@ export default function DragSplit({ question, onAnswer, disabled }) {
       )}
 
       {showResult && (
-        <div style={{
-          ...resultBar,
-          backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
-          borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
-        }}>
+        <div
+          role="status"
+          aria-live="assertive"
+          style={{
+            ...resultBar,
+            backgroundColor: isCorrect ? '#E8F5E9' : '#FFEBEE',
+            borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
+          }}
+        >
           {isCorrect
             ? `✓ 对啦！拿走 ${takeCount} 个，还剩 ${answer} 个`
             : `✗ 不对哦，应该还剩 ${answer} 个`}

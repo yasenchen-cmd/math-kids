@@ -8,7 +8,7 @@ function Pile({ side, tapped, onTap, disabled, showResult }) {
   const count = tapped.size
 
   return (
-    <div style={pileWrap}>
+    <div style={pileWrap} role="group" aria-label={`${label} 边`}>
       <div style={pileLabel}>{label}</div>
       <div style={pileGrid}>
         {items.map((emoji, idx) => {
@@ -18,6 +18,8 @@ function Pile({ side, tapped, onTap, disabled, showResult }) {
               key={idx}
               type="button"
               disabled={disabled || showResult}
+              aria-pressed={isTapped}
+              aria-label={`${label} 第 ${idx + 1} 个${isTapped ? '，已点选' : ''}`}
               onClick={() => onTap(idx)}
               style={{
                 ...tapItem,
@@ -27,13 +29,13 @@ function Pile({ side, tapped, onTap, disabled, showResult }) {
                 opacity: showResult && !isTapped ? 0.35 : 1,
               }}
             >
-              <span style={{ fontSize: items.length > 8 ? '1.4rem' : '1.8rem' }}>{emoji}</span>
-              {isTapped && <span style={orderBadge}>{count}</span>}
+              <span style={{ fontSize: items.length > 8 ? '1.4rem' : '1.8rem' }} aria-hidden="true">{emoji}</span>
+              {isTapped && <span style={orderBadge} aria-hidden="true">{count}</span>}
             </button>
           )
         })}
       </div>
-      <div style={countBadge}>已数 {count} 个</div>
+      <div style={countBadge} role="status" aria-live="polite">已数 {count} 个</div>
     </div>
   )
 }
@@ -68,8 +70,8 @@ export default function CompareCount({ question, onAnswer, disabled }) {
   const isCorrect = picked === answer
 
   return (
-    <div style={container}>
-      <div style={sceneLabel}>👆 先分别数一数 A 和 B，再选哪边更多</div>
+    <div style={container} role="region" aria-label="比较多少">
+      <div style={sceneLabel} id="compare-hint">👆 先分别数一数 A 和 B，再选哪边更多</div>
 
       <div style={compareRow}>
         <Pile
@@ -79,7 +81,7 @@ export default function CompareCount({ question, onAnswer, disabled }) {
           disabled={disabled}
           showResult={showResult}
         />
-        <div style={vs}>VS</div>
+        <div style={vs} aria-hidden="true">VS</div>
         <Pile
           side={right}
           tapped={rightTapped}
@@ -89,7 +91,7 @@ export default function CompareCount({ question, onAnswer, disabled }) {
         />
       </div>
 
-      <div style={choiceRow}>
+      <div style={choiceRow} role="group" aria-labelledby="compare-hint">
         {options.map(opt => {
           let bg = 'white'
           let border = '2px solid #E8ECF0'
@@ -102,6 +104,8 @@ export default function CompareCount({ question, onAnswer, disabled }) {
               key={opt}
               type="button"
               disabled={disabled || showResult}
+              aria-label={opt}
+              aria-pressed={picked === opt}
               onClick={() => handlePick(opt)}
               style={{ ...choiceBtn, background: bg, border }}
             >
@@ -112,11 +116,15 @@ export default function CompareCount({ question, onAnswer, disabled }) {
       </div>
 
       {showResult && (
-        <div style={{
-          ...resultBar,
-          background: isCorrect ? '#E8F5E9' : '#FFEBEE',
-          borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
-        }}>
+        <div
+          role="status"
+          aria-live="assertive"
+          style={{
+            ...resultBar,
+            background: isCorrect ? '#E8F5E9' : '#FFEBEE',
+            borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
+          }}
+        >
           {isCorrect ? '✓ 对啦！' : `✗ 答案是 ${answer}`}
         </div>
       )}

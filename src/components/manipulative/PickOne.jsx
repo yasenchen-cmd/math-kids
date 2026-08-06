@@ -51,14 +51,18 @@ export default function PickOne({ question, onAnswer, disabled }) {
   const isCorrect = picked === answer
 
   return (
-    <div style={container}>
-      <div style={sceneLabel}>{sceneHint}</div>
+    <div style={container} role="region" aria-label="点选作答">
+      <div style={sceneLabel} id="pick-one-hint">{sceneHint}</div>
       <SequenceRow sequence={sequence} />
 
-      <div style={{
-        ...grid,
-        gridTemplateColumns: options.length <= 2 ? '1fr 1fr' : '1fr 1fr',
-      }}>
+      <div
+        role="group"
+        aria-labelledby="pick-one-hint"
+        style={{
+          ...grid,
+          gridTemplateColumns: options.length <= 2 ? '1fr 1fr' : '1fr 1fr',
+        }}
+      >
         {options.map((opt, idx) => {
           let bg = 'white'
           let border = '2px solid #E8ECF0'
@@ -73,6 +77,8 @@ export default function PickOne({ question, onAnswer, disabled }) {
               key={idx}
               type="button"
               disabled={disabled || showResult}
+              aria-label={`选项 ${opt}`}
+              aria-pressed={picked === opt}
               onClick={() => handlePick(opt)}
               style={{
                 ...optionBtn,
@@ -90,12 +96,16 @@ export default function PickOne({ question, onAnswer, disabled }) {
       </div>
 
       {showResult && (
-        <div style={{
-          ...resultBar,
-          background: isCorrect ? '#E8F5E9' : '#FFEBEE',
-          borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
-          color: isCorrect ? '#2E7D32' : '#C62828',
-        }}>
+        <div
+          role="status"
+          aria-live="assertive"
+          style={{
+            ...resultBar,
+            background: isCorrect ? '#E8F5E9' : '#FFEBEE',
+            borderColor: isCorrect ? '#4CAF50' : '#FF6B6B',
+            color: isCorrect ? '#2E7D32' : '#C62828',
+          }}
+        >
           {isCorrect ? '✓ 对啦！' : `✗ 答案是 ${answer}`}
         </div>
       )}

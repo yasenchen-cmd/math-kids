@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import SkillTreeView from './components/SkillTreeView'
 import GameScreen from './components/GameScreen'
 import PayWall from './components/PayWall'
@@ -34,19 +34,19 @@ export default function App() {
   }, [errorProfile])
 
   function handleSelectSkill(skillId) {
-    // 免费试用逻辑
-    if (!unlocked) {
-      if (trialRemaining > 0) {
-        consumeTrial()
-      } else {
-        setPendingSkill(skillId)
-        setShowPayWall(true)
-        return
-      }
+    // 试用按「开始练习」扣次，浏览技能树 / 看讲解不消耗
+    if (!unlocked && trialRemaining <= 0) {
+      setPendingSkill(skillId)
+      setShowPayWall(true)
+      return
     }
     setCurrentSkill(skillId)
     setShowSkillTree(false)
   }
+
+  const consumeTrialOnce = useCallback(() => {
+    if (!unlocked) consumeTrial()
+  }, [unlocked, consumeTrial])
 
   function handlePaySuccess() {
     setShowPayWall(false)
@@ -126,6 +126,7 @@ export default function App() {
           onBack={handleBack}
           onMastered={handleMastered}
           onSelectSkill={handleSelectSkill}
+          onConsumeTrial={consumeTrialOnce}
         />
       )}
 
@@ -164,7 +165,7 @@ export default function App() {
           <div style={confirmCard}>
             <h3 style={{fontSize:'1.2rem',fontWeight:700,marginBottom:'12px',color:'#2D3436'}}>重置所有进度</h3>
             <p style={{fontSize:'1rem',color:'#636E72',marginBottom:'20px',lineHeight:1.5}}>
-              所有闯关记录、星星和技能掌握度都会被清除，确定吗？
+              所有闯关记录、星星和技能掌握度都会被清除。已购买的 PRO 解锁会保留。确定吗？
             </p>
             <div style={{display:'flex',gap:'12px',justifyContent:'center'}}>
               <button style={{background:'#E8ECF0',color:'#636E72',border:'none',padding:'10px 24px',borderRadius:'12px',fontSize:'1rem',fontWeight:600,cursor:'pointer'}}

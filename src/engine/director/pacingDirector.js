@@ -165,9 +165,21 @@ export class PacingDirector {
     return directives
   }
 
-  /** 获取当前状态下的建议（用于外部轮询） */
+  /**
+   * 获取当前状态下的节奏建议（不发射指令，仅供 UI / 调试轮询）
+   * @returns {Array<{ type: string, mood?: string, text?: string, level?: number, guarantee?: boolean }>}
+   */
   getSuggestions() {
-    return []
+    const stateDirectives = DIRECTIVES[this._currentState]
+    if (!stateDirectives?.onEnter) return []
+    return stateDirectives.onEnter.map(({ type, mood, text, level, guarantee, intensity }) => ({
+      type,
+      ...(mood != null && { mood }),
+      ...(text != null && { text }),
+      ...(level != null && { level }),
+      ...(guarantee != null && { guarantee }),
+      ...(intensity != null && { intensity }),
+    }))
   }
 
   /** 销毁 */
